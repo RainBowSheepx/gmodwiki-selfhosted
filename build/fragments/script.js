@@ -91,8 +91,7 @@ class Navigate {
       this.pageTitle.innerText = json.title;
       this.pageFooter.innerHTML = json.footer;
       this.pageTitle2.innerText = "";
-      this.liveButton.href = `https://wiki.facepunch.com/gmod${window.location.pathname}`;
-      this.liveButton.target = "_blank";
+      UpdateLiveButton();
 
       requestAnimationFrame(() => {
         var a = document.createElement("a");
@@ -160,6 +159,16 @@ class Navigate {
     if (this.pageContent == null) return true;
 
     var thisHost = window.location.host;
+    // Links that must never go through the JSON content loader: anchors,
+    // special pages, anything with a query string, and app pages like the
+    // custom-page editor or the API.
+    var skipNav = (val) =>
+      val.indexOf("#") >= 0 ||
+      val.indexOf("~") >= 0 ||
+      val.indexOf("?") >= 0 ||
+      val.indexOf("/custom") === 0 ||
+      val.indexOf("/api/") === 0;
+
     this.sideBar.addEventListener("click", (e) => {
       var a = e.target;
 
@@ -168,7 +177,7 @@ class Navigate {
       let val = a.getAttribute("href");
       if (val == null || val == "") return;
 
-      if (val.indexOf("#") >= 0 || val.indexOf("~") >= 0) return;
+      if (skipNav(val)) return;
 
       if (!(e.ctrlKey || e.shiftKey || e.altKey)) {
         Navigate.ToPage(val);
@@ -186,7 +195,7 @@ class Navigate {
       let val = a.getAttribute("href");
       if (val == null || val == "") return;
 
-      if (val.indexOf("#") >= 0 || val.indexOf("~") >= 0) return;
+      if (skipNav(val)) return;
 
       if (!(e.ctrlKey || e.shiftKey || e.altKey)) {
         Navigate.ToPage(val);
@@ -493,6 +502,26 @@ window.addEventListener("keydown", (e) => {
   e.preventDefault();
 });
 
+// Custom pages carry an invisible #custom-page-marker element: on them the
+// header "Live" button (which links to the official wiki) becomes an "Edit"
+// button opening the page in the custom-page editor.
+function UpdateLiveButton() {
+  var liveButton = document.getElementById("live-button");
+  if (!liveButton) return;
+
+  var marker = document.getElementById("custom-page-marker");
+
+  if (marker) {
+    liveButton.innerHTML = '<i class="mdi mdi-pencil"></i>Edit';
+    liveButton.href = "/custom/edit?address=" + encodeURIComponent(marker.getAttribute("data-address") || "");
+    liveButton.removeAttribute("target");
+  } else {
+    liveButton.innerHTML = '<i class="mdi mdi-history"></i>Live';
+    liveButton.href = "https://wiki.facepunch.com/gmod" + window.location.pathname;
+    liveButton.target = "_blank";
+  }
+}
+
 // Builds the "Custom Wiki" sidebar section from the database-backed custom
 // pages/categories. Category names use "/" for nesting (e.g. "MyAddon/Hooks").
 // Links get a `search` attribute so the sidebar quick-search finds them.
@@ -660,12 +689,17 @@ function InitCustomSidebar() {
 }
 
 // The main init chain runs inside requestAnimationFrame after `load`, which
-// browsers suspend in hidden tabs — build the custom sidebar independently so
-// it is there as soon as the DOM is ready.
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", InitCustomSidebar);
-} else {
+// browsers suspend in hidden tabs — build the custom sidebar and set up the
+// Live/Edit button independently so they are there as soon as the DOM is ready.
+function InitCustomExtras() {
   InitCustomSidebar();
+  UpdateLiveButton();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", InitCustomExtras);
+} else {
+  InitCustomExtras();
 }
 
 function getTimeSince(utcTimestamp) {
@@ -705,9 +739,7 @@ window.addEventListener("load", () => {
       active[0].scrollIntoView({ smooth: true, block: "center" });
     }
 
-    var liveButton = document.getElementById("live-button");
-    liveButton.href = `https://wiki.facepunch.com/gmod${window.location.pathname}`;
-    liveButton.target = "_blank";
+    UpdateLiveButton();
 
     requestAnimationFrame(() => {
       InitSearch();

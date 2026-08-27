@@ -53,19 +53,14 @@ function formatDate(iso: string): string {
   }
 }
 
-function editBar(page: CustomPage): string {
-  const href = `/custom/edit?address=${encodeURIComponent(page.address)}`;
-  return (
-    `<div class="custom_page_bar" style="display:flex;align-items:center;gap:0.75em;padding:0.5em 0.9em;margin-bottom:1em;border:1px solid rgba(127,127,127,0.35);border-radius:6px;background:rgba(127,127,127,0.08);font-size:0.92em;">` +
-    `<i class="mdi mdi-pencil"></i>` +
-    `<span>This is a <b>custom page</b> (category: ${escapeText(page.category)}) — anyone can <a href="${href}">edit it</a>.</span>` +
-    `<a style="margin-left:auto" href="/custom">All custom pages</a>` +
-    `</div>`
-  );
+// Invisible marker so the frontend can tell custom pages apart from official
+// ones (script.js swaps the "Live" header button for an "Edit" button).
+function customMarker(page: CustomPage): string {
+  return `<div id="custom-page-marker" data-address="${escapeAttr(page.address)}" style="display:none"></div>`;
 }
 
-function escapeText(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function escapeAttr(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 /**
@@ -78,7 +73,7 @@ export function customPageToContentJson(page: CustomPage): object {
     description: page.description,
     tags: page.tags,
     address: page.address,
-    html: editBar(page) + page.html,
+    html: customMarker(page) + page.html,
     footer: `Custom page<br>Updated: ${formatDate(page.updated_at as unknown as string)}`,
     custom: true,
   };
