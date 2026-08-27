@@ -562,12 +562,18 @@ function InitCustomSidebar() {
         pageByAddress[p.address.toLowerCase()] = p;
       });
 
-      // A category whose path (or leaf name) matches a page's address is
-      // "page-backed": like the original's class entries (e.g. Classes >
-      // Angle), its summary links to that page and the page is not
-      // repeated in the child list.
+      // A category whose path (or any suffix of it, down to the leaf name)
+      // matches a page's address is "page-backed": like the original's class
+      // entries (e.g. Classes > Angle), its summary links to that page and
+      // the page is not repeated in the child list. Suffix matching lets a
+      // page at "Systems/TISU" own the "Trolleybus System/Systems/TISU" node.
       function ownerPageFor(path, name) {
-        return pageByAddress[path.toLowerCase()] || pageByAddress[name.toLowerCase()] || null;
+        var parts = path.split("/");
+        for (var i = 0; i < parts.length; i++) {
+          var owner = pageByAddress[parts.slice(i).join("/").toLowerCase()];
+          if (owner) return owner;
+        }
+        return pageByAddress[name.toLowerCase()] || null;
       }
       var usedAsCategory = {};
       (function markUsed(node, path) {

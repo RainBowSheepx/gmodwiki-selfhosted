@@ -100,6 +100,15 @@ describe("renderWikitext", () => {
     expect(html).not.toContain("Facepunch/garrysmod");
   });
 
+  it("supports parentlink for subjects living at a different address", () => {
+    const markup = `<function name="ControlPedals" parent="TISU" parentlink="Systems/TISU" type="classfunc">
+	<description>Test.</description>
+	<realm>Server</realm>
+</function>`;
+    const { html } = renderWikitext(markup, ctx);
+    expect(html).toContain(`<a class="subject" href="/Systems/TISU">TISU</a>:ControlPedals`);
+  });
+
   it("renders enumerations as value tables", () => {
     const markup = `<enumeration>
 <description>Test enum.</description>

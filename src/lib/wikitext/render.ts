@@ -515,9 +515,12 @@ function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner
   }
 
   const separator = type === "classfunc" || type === "hook" || type === "panelfunc" ? ":" : ".";
+  // `parentlink` overrides the subject link target when the parent's page
+  // lives at a different address than its display name (e.g. Systems/TISU).
+  const parentHref = attrs.parentlink ?? parent;
   let qualifiedName = name;
   if (parent && parent !== "Global") {
-    line += `<a class="subject" href="/${escapeAttr(parent)}">${escapeHtml(parent)}</a>${separator}${escapeHtml(name)}`;
+    line += `<a class="subject" href="/${escapeAttr(parentHref)}">${escapeHtml(parent)}</a>${separator}${escapeHtml(name)}`;
     qualifiedName = `${parent}${separator}${name}`;
   } else {
     line += escapeHtml(name);
