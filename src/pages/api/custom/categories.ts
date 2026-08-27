@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import {
   createCustomCategory,
-  deleteCustomCategory,
+  deleteCategoryTree,
   listCustomCategories,
   listCustomPages,
 } from "../../../lib/db.js";
@@ -47,12 +47,31 @@ export const POST: APIRoute = async ({ request }) =>
     return jsonResponse({ category }, 201);
   });
 
+/**
+ * Deletes a category and its subcategories. If the tree still contains pages,
+ * responds 409 with the count unless `?pages=1` confirms deleting them too.
+ */
 export const DELETE: APIRoute = async ({ url }) =>
   withDb(async () => {
     const name = url.searchParams.get("name") ?? "";
     if (!name) return errorResponse("Pass ?name=<category>", 400);
+    const deletePages = url.searchParams.get("pages") === "1";
 
-    const deleted = await deleteCustomCategory(name);
-    if (!deleted) return errorResponse(`No category named '${name}'`, 404);
-    return jsonResponse({ deleted: true });
+    const result = await deleteCategoryTree(name, deletePages);
+
+    if (result.pagesInTree > 0 && !deletePages) {
+      return jsonResponse(
+        {
+          error: `Category '${name}' still contains ${result.pagesInTree} page(s) (including subcategories). Pass ?pages=1 to delete them too.`,
+          pagesInTree: result.pagesInTree,
+        },
+        409,
+      );
+    }
+
+    if (result.deletedCategories === 0 && result.deletedPages === 0) {
+      return errorResponse(`No category named '${name}'`, 404);
+    }
+
+    return jsonResponse({ deleted: true, deletedCategories: result.deletedCategories, deletedPages: result.deletedPages });
   });

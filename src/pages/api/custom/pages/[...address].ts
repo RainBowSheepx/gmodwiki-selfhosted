@@ -7,9 +7,19 @@ import {
   withDb,
 } from "../../../../lib/custom_pages.js";
 
+// Astro leaves percent-encoding (e.g. %3A for ":") in rest params untouched
+function decodeAddress(raw: string | undefined): string {
+  const value = raw ?? "";
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export const GET: APIRoute = async ({ params }) =>
   withDb(async () => {
-    const address = params.address ?? "";
+    const address = decodeAddress(params.address);
     const page = await getCustomPage(address);
     if (!page) return errorResponse(`No custom page at '${address}'`, 404);
     return jsonResponse({ page });
@@ -17,7 +27,7 @@ export const GET: APIRoute = async ({ params }) =>
 
 export const PUT: APIRoute = async ({ params, request, url }) =>
   withDb(async () => {
-    const address = params.address ?? "";
+    const address = decodeAddress(params.address);
     const existing = await getCustomPage(address);
     if (!existing) {
       // Only custom pages are editable: official pages get overwritten by the
@@ -53,7 +63,7 @@ export const PUT: APIRoute = async ({ params, request, url }) =>
 
 export const DELETE: APIRoute = async ({ params }) =>
   withDb(async () => {
-    const address = params.address ?? "";
+    const address = decodeAddress(params.address);
     const deleted = await deleteCustomPage(address);
     if (!deleted) return errorResponse(`No custom page at '${address}'`, 404);
     return jsonResponse({ deleted: true });

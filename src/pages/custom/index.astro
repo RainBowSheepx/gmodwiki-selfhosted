@@ -57,6 +57,7 @@ const categoryLeaf = (name: string) => name.split("/").pop() ?? name
                     {categoryDepth(name) > 0 && <span class="custom-parent">{name.slice(0, name.length - categoryLeaf(name).length)}</span>}{categoryLeaf(name)}
                     <a class="anchor" href={`#${categorySlug(name)}`}><i class="mdi mdi-link-variant"></i></a>
                     <a name={categorySlug(name)} class="anchor_offset"></a>
+                    <button class="custom-delete cat-delete" data-name={name} title="Delete this category (and subcategories)"><i class="mdi mdi-delete"></i></button>
                 </h2>
                 {group.description && <p>{group.description}</p>}
                 {group.pages.length === 0 && <p><i>No pages in this category yet.</i></p>}
@@ -66,6 +67,7 @@ const categoryLeaf = (name: string) => name.split("/").pop() ?? name
                             <a href={`/${page.address}`}>{page.title}</a>
                             <span class="custom-meta">({page.address})</span>
                             — <a href={`/custom/edit?address=${encodeURIComponent(page.address)}`}>edit</a>
+                            <button class="custom-delete page-delete" data-address={page.address} title="Delete this page"><i class="mdi mdi-delete"></i></button>
                         </li>
                     ))}
                 </ul>
@@ -104,6 +106,20 @@ const categoryLeaf = (name: string) => name.split("/").pop() ?? name
         opacity: 0.5;
         font-weight: 400;
     }
+    .custom-delete {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: inherit;
+        opacity: 0.45;
+        padding: 0 0.3em;
+        font-size: 0.9em;
+        vertical-align: middle;
+    }
+    .custom-delete:hover {
+        opacity: 1;
+        color: #c0392b;
+    }
     .custom-form {
         display: flex;
         gap: 0.5em;
@@ -120,6 +136,41 @@ const categoryLeaf = (name: string) => name.split("/").pop() ?? name
 </style>
 
 <script is:inline>
+    document.querySelectorAll(".page-delete").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const address = btn.dataset.address;
+            if (!confirm(`Delete page '${address}'? This cannot be undone.`)) return;
+            try {
+                const res = await fetch("/api/custom/pages/" + encodeURIComponent(address), { method: "DELETE" });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || res.statusText);
+                window.location.reload();
+            } catch (err) {
+                alert("Delete failed: " + err.message);
+            }
+        });
+    });
+
+    document.querySelectorAll(".cat-delete").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const name = btn.dataset.name;
+            if (!confirm(`Delete category '${name}' (including its subcategories)?`)) return;
+            try {
+                let res = await fetch("/api/custom/categories?name=" + encodeURIComponent(name), { method: "DELETE" });
+                let data = await res.json();
+                if (res.status === 409 && data.pagesInTree) {
+                    if (!confirm(`Category '${name}' still contains ${data.pagesInTree} page(s), including subcategories. Delete the pages too?`)) return;
+                    res = await fetch("/api/custom/categories?name=" + encodeURIComponent(name) + "&pages=1", { method: "DELETE" });
+                    data = await res.json();
+                }
+                if (!res.ok) throw new Error(data.error || res.statusText);
+                window.location.reload();
+            } catch (err) {
+                alert("Delete failed: " + err.message);
+            }
+        });
+    });
+
     document.getElementById("new-category-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const status = document.getElementById("category-status");

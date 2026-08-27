@@ -216,8 +216,41 @@ export async function createCustomCategory(name: string, description: string): P
   return res.rows[0];
 }
 
-export async function deleteCustomCategory(name: string): Promise<boolean> {
+/**
+ * Delete a category together with its subcategories ("Name/..."). Pages in the
+ * tree are only removed when `deletePages` is set; otherwise a non-empty tree
+ * is left untouched so the API can ask the user to confirm.
+ */
+export async function deleteCategoryTree(
+  name: string,
+  deletePages: boolean,
+): Promise<{ pagesInTree: number; deletedCategories: number; deletedPages: number }> {
   const pool = await getPool();
-  const res = await pool.query(`DELETE FROM custom_categories WHERE name = $1`, [name]);
-  return (res.rowCount ?? 0) > 0;
+  const subtreePattern = name.replace(/([%_\\])/g, "\\$1") + "/%";
+
+  const countRes = await pool.query(
+    `SELECT count(*)::int AS n FROM custom_pages WHERE category = $1 OR category LIKE $2 ESCAPE '\\'`,
+    [name, subtreePattern],
+  );
+  const pagesInTree: number = countRes.rows[0]?.n ?? 0;
+
+  if (pagesInTree > 0 && !deletePages) {
+    return { pagesInTree, deletedCategories: 0, deletedPages: 0 };
+  }
+
+  let deletedPages = 0;
+  if (pagesInTree > 0) {
+    const pageRes = await pool.query(
+      `DELETE FROM custom_pages WHERE category = $1 OR category LIKE $2 ESCAPE '\\'`,
+      [name, subtreePattern],
+    );
+    deletedPages = pageRes.rowCount ?? 0;
+  }
+
+  const catRes = await pool.query(
+    `DELETE FROM custom_categories WHERE name = $1 OR name LIKE $2 ESCAPE '\\'`,
+    [name, subtreePattern],
+  );
+
+  return { pagesInTree, deletedCategories: catRes.rowCount ?? 0, deletedPages };
 }

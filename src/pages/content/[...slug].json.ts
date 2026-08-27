@@ -13,7 +13,12 @@ import { customPageToContentJson, jsonResponse } from "../../lib/custom_pages.js
  * page came from.
  */
 export const GET: APIRoute = async ({ params }) => {
-  const address = params.slug ?? "";
+  let address = params.slug ?? "";
+  try {
+    address = decodeURIComponent(address);
+  } catch {
+    // keep the raw value
+  }
 
   try {
     const page = await getCustomPage(address);

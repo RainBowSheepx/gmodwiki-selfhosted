@@ -594,11 +594,19 @@ function InitCustomSidebar() {
           var typeCls = "cm type" + (hasTag(owner, "example") ? " e" : "");
           details.className = "level" + level + " " + typeCls;
           summary.appendChild(makeLink(owner, typeCls, name));
+        } else if (level >= 2) {
+          // Subcategories always match the class-entry look, even without a
+          // backing page; an <a> without href just toggles the details.
+          details.className = "level" + level + " cm type";
+          var plain = document.createElement("a");
+          plain.className = "cm type";
+          plain.textContent = name;
+          summary.appendChild(plain);
         } else {
           details.className = "level" + level;
           var div = document.createElement("div");
           var icon = document.createElement("i");
-          icon.className = level === 1 ? "mdi mdi-folder" : "mdi mdi-folder-outline";
+          icon.className = "mdi mdi-folder";
           div.appendChild(icon);
           div.appendChild(document.createTextNode(" " + name + " "));
           var count = document.createElement("span");
