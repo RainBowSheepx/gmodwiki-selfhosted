@@ -40,3 +40,5 @@ src/components/Sidebar.astro
 docs/
 .claude/
 .superpowers/
+
+db_backup/gmodwiki_data.json
