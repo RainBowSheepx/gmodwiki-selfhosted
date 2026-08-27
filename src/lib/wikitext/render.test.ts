@@ -90,6 +90,16 @@ describe("renderWikitext", () => {
     expect(html).toContain(`q=Player:Say`);
   });
 
+  it("supports a custom github repo for the Search Github button", () => {
+    const markup = `<function name="Draw" parent="Deck" type="classfunc" github="https://github.com/Owner/Repo/">
+	<description>Test.</description>
+	<realm>Server</realm>
+</function>`;
+    const { html } = renderWikitext(markup, ctx);
+    expect(html).toContain(`href="https://github.com/Owner/Repo/search?utf8=%E2%9C%93&amp;q=Deck:Draw"`);
+    expect(html).not.toContain("Facepunch/garrysmod");
+  });
+
   it("renders enumerations as value tables", () => {
     const markup = `<enumeration>
 <description>Test enum.</description>

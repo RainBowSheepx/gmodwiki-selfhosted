@@ -535,9 +535,13 @@ function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner
     line += "()";
   }
 
+  // The `github` attribute points the "Search Github" button at a custom
+  // repository (e.g. an addon's repo) instead of Facepunch's.
+  const repo = (attrs.github ?? "https://github.com/Facepunch/garrysmod").replace(/\/+$/, "");
+
   let html = `<div class="${classes.join(" ")}">\n`;
   html += `<div class="function_line">${line}</div>`;
-  html += `<div class="function_links">\n<a target="_blank" href="https://github.com/Facepunch/garrysmod/search?utf8=%E2%9C%93&amp;q=${encodeURIComponent(qualifiedName).replace(/%3A/g, ":")}" target="_blank"><i class="mdi mdi-github-box"></i> Search Github</a>\n</div>\n`;
+  html += `<div class="function_links">\n<a target="_blank" href="${escapeAttr(repo)}/search?utf8=%E2%9C%93&amp;q=${encodeURIComponent(qualifiedName).replace(/%3A/g, ":")}" target="_blank"><i class="mdi mdi-github-box"></i> Search Github</a>\n</div>\n`;
 
   // --- description ----------------------------------------------------
   html += sectionHeader("Description");

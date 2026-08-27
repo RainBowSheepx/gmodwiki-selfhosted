@@ -73,7 +73,9 @@ export function customPageToContentJson(page: CustomPage): object {
     description: page.description,
     tags: page.tags,
     address: page.address,
-    html: customMarker(page) + page.html,
+    // Marker goes last: the site CSS gives `#pagecontent > :first-child` its
+    // top margin, so the real content must stay the first child.
+    html: page.html + customMarker(page),
     footer: `Custom page<br>Updated: ${formatDate(page.updated_at as unknown as string)}`,
     custom: true,
   };
