@@ -34,6 +34,19 @@ class Navigate {
     fetch(`/content${address.toLowerCase()}.json`, { method: "GET" })
       .then((r) => r.json())
       .then((json) => {
+        // Never render `undefined`: missing/invalid payloads get a fallback page
+        if (!json || typeof json.html !== "string") {
+          json = {
+            html:
+              "<h1>Not Found</h1><p>This page is missing.</p>" +
+              '<p>You can <a href="/custom/edit?address=' +
+              encodeURIComponent(address.replace(/^\//, "")) +
+              '">create it as a custom page</a>.</p>',
+            title: "Page Not Found",
+            address: address.replace(/^\//, ""),
+            footer: "",
+          };
+        }
         newData = json;
       })
       .catch((e) => {
@@ -480,6 +493,173 @@ window.addEventListener("keydown", (e) => {
   e.preventDefault();
 });
 
+// Builds the "Custom Wiki" sidebar section from the database-backed custom
+// pages/categories. Category names use "/" for nesting (e.g. "MyAddon/Hooks").
+// Links get a `search` attribute so the sidebar quick-search finds them.
+function InitCustomSidebar() {
+  if (document.getElementById("custom-wiki-section")) return;
+  Promise.all([
+    fetch("/api/custom/pages").then((r) => (r.ok ? r.json() : null)),
+    fetch("/api/custom/categories").then((r) => (r.ok ? r.json() : null)),
+  ])
+    .then(([pagesData, catsData]) => {
+      if (!pagesData || !pagesData.pages) return;
+      var pages = pagesData.pages;
+      var cats = catsData && catsData.categories ? catsData.categories : [];
+      if (pages.length === 0 && cats.length === 0) return;
+
+      var root = { children: {}, pages: [] };
+      function ensure(path) {
+        var node = root;
+        if (!path) return node;
+        var parts = path.split("/");
+        for (var i = 0; i < parts.length; i++) {
+          var part = parts[i].trim();
+          if (!part) continue;
+          if (!node.children[part]) node.children[part] = { children: {}, pages: [] };
+          node = node.children[part];
+        }
+        return node;
+      }
+      cats.forEach(function (c) {
+        ensure(c.name);
+      });
+      pages.forEach(function (p) {
+        ensure(p.category).pages.push(p);
+      });
+
+      var pageByAddress = {};
+      pages.forEach(function (p) {
+        pageByAddress[p.address.toLowerCase()] = p;
+      });
+
+      // A category whose path (or leaf name) matches a page's address is
+      // "page-backed": like the original's class entries (e.g. Classes >
+      // Angle), its summary links to that page and the page is not
+      // repeated in the child list.
+      function ownerPageFor(path, name) {
+        return pageByAddress[path.toLowerCase()] || pageByAddress[name.toLowerCase()] || null;
+      }
+      var usedAsCategory = {};
+      (function markUsed(node, path) {
+        for (var k in node.children) {
+          var childPath = path ? path + "/" + k : k;
+          var owner = ownerPageFor(childPath, k);
+          if (owner) usedAsCategory[owner.address.toLowerCase()] = true;
+          markUsed(node.children[k], childPath);
+        }
+      })(root, "");
+
+      function hasTag(p, tag) {
+        return (" " + (p.tags || "") + " ").indexOf(" " + tag + " ") >= 0;
+      }
+
+      // Same classes the original sidebar uses: cm = member dot, f =
+      // function, rc/rs/rm = realm colors, e = has example.
+      function leafClasses(p) {
+        if (!(hasTag(p, "function") || hasTag(p, "enum") || hasTag(p, "struct"))) return "";
+        var cls = ["cm"];
+        if (hasTag(p, "function")) cls.push("f");
+        if (hasTag(p, "realm-client")) cls.push("rc");
+        if (hasTag(p, "realm-server")) cls.push("rs");
+        if (hasTag(p, "realm-menu")) cls.push("rm");
+        if (hasTag(p, "example")) cls.push("e");
+        return cls.join(" ");
+      }
+
+      function makeLink(p, className, text) {
+        var a = document.createElement("a");
+        if (className) a.className = className;
+        a.href = "/" + p.address;
+        a.setAttribute("search", p.title + " " + p.address);
+        a.textContent = text || p.title;
+        return a;
+      }
+
+      function visiblePagesOf(node) {
+        return node.pages.filter(function (p) {
+          return !usedAsCategory[p.address.toLowerCase()];
+        });
+      }
+
+      function render(node, name, path, level) {
+        var details = document.createElement("details");
+        var summary = document.createElement("summary");
+        var childKeys = Object.keys(node.children).sort();
+        var visiblePages = visiblePagesOf(node);
+        var owner = ownerPageFor(path, name);
+
+        if (owner) {
+          // Original class-style entry: <details class="level2 cm type e"><summary><a ...>
+          var typeCls = "cm type" + (hasTag(owner, "example") ? " e" : "");
+          details.className = "level" + level + " " + typeCls;
+          summary.appendChild(makeLink(owner, typeCls, name));
+        } else {
+          details.className = "level" + level;
+          var div = document.createElement("div");
+          var icon = document.createElement("i");
+          icon.className = level === 1 ? "mdi mdi-folder" : "mdi mdi-folder-outline";
+          div.appendChild(icon);
+          div.appendChild(document.createTextNode(" " + name + " "));
+          var count = document.createElement("span");
+          count.className = "child-count";
+          count.textContent = childKeys.length + visiblePages.length;
+          div.appendChild(count);
+          summary.appendChild(div);
+        }
+        details.appendChild(summary);
+
+        var ul = document.createElement("ul");
+        childKeys.forEach(function (k) {
+          var li = document.createElement("li");
+          li.appendChild(render(node.children[k], k, path ? path + "/" + k : k, level + 1));
+          ul.appendChild(li);
+        });
+        visiblePages
+          .sort(function (a, b) {
+            return a.title.localeCompare(b.title);
+          })
+          .forEach(function (p) {
+            var li = document.createElement("li");
+            li.appendChild(makeLink(p, leafClasses(p)));
+            ul.appendChild(li);
+          });
+        if (ul.children.length > 0) details.appendChild(ul);
+        return details;
+      }
+
+      var contents = document.getElementById("contents");
+      if (!contents || document.getElementById("custom-wiki-section")) return;
+      var header = document.createElement("div");
+      header.className = "sectionheader";
+      header.textContent = "Custom Wiki";
+      var section = document.createElement("div");
+      section.className = "section";
+      section.id = "custom-wiki-section";
+      var keys = Object.keys(root.children).sort();
+      for (var i = 0; i < keys.length; i++) {
+        section.appendChild(render(root.children[keys[i]], keys[i], keys[i], 1));
+      }
+      if (visiblePagesOf(root).length > 0) {
+        section.appendChild(render({ children: {}, pages: root.pages }, "Uncategorized", "", 1));
+      }
+      contents.appendChild(header);
+      contents.appendChild(section);
+    })
+    .catch(function (e) {
+      console.warn("custom sidebar unavailable", e);
+    });
+}
+
+// The main init chain runs inside requestAnimationFrame after `load`, which
+// browsers suspend in hidden tabs — build the custom sidebar independently so
+// it is there as soon as the DOM is ready.
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", InitCustomSidebar);
+} else {
+  InitCustomSidebar();
+}
+
 function getTimeSince(utcTimestamp) {
   const now = new Date().getTime();
   const diffInMilliseconds = now - utcTimestamp;
@@ -525,6 +705,7 @@ window.addEventListener("load", () => {
       InitSearch();
       Navigate.Install();
       setupLastParsed();
+      InitCustomSidebar();
     });
   });
 });

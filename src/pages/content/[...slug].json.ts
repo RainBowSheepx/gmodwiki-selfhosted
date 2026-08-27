@@ -22,5 +22,23 @@ export const GET: APIRoute = async ({ params }) => {
     console.warn("custom page lookup failed:", e?.message ?? e);
   }
 
-  return jsonResponse({ error: `No page at '${address}'` }, 404);
+  // Missing page: still return the content-JSON shape (with a renderable
+  // `html`), so client-side navigation can display it instead of `undefined`.
+  const createHref = `/custom/edit?address=${encodeURIComponent(address)}`;
+  return jsonResponse(
+    {
+      title: "Page Not Found",
+      description: "Page Not Found",
+      tags: "",
+      address,
+      html:
+        `<a name="notfound" class="anchor_offset"></a>` +
+        `<h1>Not Found<a class="anchor" href="#notfound"><i class="mdi mdi-link-variant"></i></a></h1>` +
+        `<p>This page is missing.</p>` +
+        `<p>You can <a href="${createHref}">create it as a custom page</a>.</p>`,
+      footer: "",
+      missing: true,
+    },
+    404,
+  );
 };

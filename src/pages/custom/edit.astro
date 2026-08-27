@@ -74,7 +74,7 @@ print(ok)
                 <label>Title <span class="hint">(optional — defaults to the address)</span></label>
                 <input type="text" id="page-title" value={existing?.title ?? ""} />
 
-                <label>Category</label>
+                <label>Category <span class="hint">(use <code>/</code> for subcategories, e.g. <code>MyAddon/Hooks</code>)</span></label>
                 <input type="text" id="page-category" list="category-options" value={existing?.category ?? "Custom"} />
                 <datalist id="category-options">
                     {categories.map((name) => <option value={name} />)}

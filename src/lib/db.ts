@@ -166,12 +166,36 @@ export async function searchCustomPages(query: string, limit = 10): Promise<Omit
      FROM custom_pages
      WHERE title ILIKE '%' || $1 || '%'
         OR address ILIKE '%' || $1 || '%'
+        OR category ILIKE '%' || $1 || '%'
         OR description ILIKE '%' || $1 || '%'
-     ORDER BY title
+        OR markup ILIKE '%' || $1 || '%'
+     ORDER BY (title ILIKE '%' || $1 || '%') DESC, title
      LIMIT $2`,
     [query, limit],
   );
   return res.rows;
+}
+
+/** Categories (explicit and implied by pages) whose name matches the query. */
+export async function searchCustomCategories(
+  query: string,
+  limit = 5,
+): Promise<{ name: string; description: string; pageCount: number }[]> {
+  const pool = await getPool();
+  const res = await pool.query(
+    `SELECT name, max(description) AS description, sum(page_count)::int AS page_count FROM (
+       SELECT c.name, c.description, 0 AS page_count FROM custom_categories c
+       UNION ALL
+       SELECT p.category AS name, '' AS description, count(*) AS page_count
+       FROM custom_pages p GROUP BY p.category
+     ) all_cats
+     WHERE name ILIKE '%' || $1 || '%'
+     GROUP BY name
+     ORDER BY name
+     LIMIT $2`,
+    [query, limit],
+  );
+  return res.rows.map((r) => ({ name: r.name, description: r.description ?? "", pageCount: r.page_count ?? 0 }));
 }
 
 export async function listCustomCategories(): Promise<CustomCategory[]> {

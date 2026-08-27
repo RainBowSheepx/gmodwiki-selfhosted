@@ -23,6 +23,11 @@ for (const page of pages) {
     grouped.get(page.category)!.pages.push(page)
 }
 const groups = [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+
+const categorySlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "")
+// "MyAddon/Hooks" is a subcategory of "MyAddon": indent by depth, show the leaf name
+const categoryDepth = (name: string) => name.split("/").length - 1
+const categoryLeaf = (name: string) => name.split("/").pop() ?? name
 ---
 
 <Layout title="Custom Pages" description="User-created wiki pages" views="" updated="">
@@ -47,8 +52,12 @@ const groups = [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]))
         {!dbError && groups.length === 0 && <p><i>No custom pages yet. Create the first one!</i></p>}
 
         {groups.map(([name, group]) => (
-            <div class="section custom-category">
-                <h2>{name}<a class="anchor" href={`#${name.toLowerCase().replace(/[^a-z0-9]+/g, "")}`}><i class="mdi mdi-link-variant"></i></a></h2>
+            <div class="section custom-category" style={`margin-left: ${categoryDepth(name) * 1.5}em`}>
+                <h2>
+                    {categoryDepth(name) > 0 && <span class="custom-parent">{name.slice(0, name.length - categoryLeaf(name).length)}</span>}{categoryLeaf(name)}
+                    <a class="anchor" href={`#${categorySlug(name)}`}><i class="mdi mdi-link-variant"></i></a>
+                    <a name={categorySlug(name)} class="anchor_offset"></a>
+                </h2>
                 {group.description && <p>{group.description}</p>}
                 {group.pages.length === 0 && <p><i>No pages in this category yet.</i></p>}
                 <ul>
@@ -64,7 +73,11 @@ const groups = [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]))
         ))}
 
         <h2>Categories<a class="anchor" href="#categories"><i class="mdi mdi-link-variant"></i></a><a name="categories" class="anchor_offset"></a></h2>
-        <p>Categories group custom pages on this screen. Create one here, or just type a new category name when creating a page.</p>
+        <p>
+            Categories group custom pages here and in the sidebar. Create one below, or just type a
+            new category name when creating a page. Use <code>/</code> for subcategories
+            (e.g. <code>MyAddon/Hooks</code> is a subcategory of <code>MyAddon</code>).
+        </p>
         <form id="new-category-form" class="custom-form">
             <input type="text" id="category-name" placeholder="Category name" maxlength="100" required />
             <input type="text" id="category-description" placeholder="Description (optional)" />
@@ -86,6 +99,10 @@ const groups = [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]))
         opacity: 0.6;
         font-size: 0.85em;
         margin: 0 0.35em;
+    }
+    .custom-parent {
+        opacity: 0.5;
+        font-weight: 400;
     }
     .custom-form {
         display: flex;

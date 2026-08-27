@@ -6,8 +6,13 @@
 
 import { hybridSearch, semanticSearch } from "../../semantic/core/search.js";
 import { keywordRank } from "../../semantic/core/keyword.js";
-import { searchCustomPages } from "./db.js";
+import { searchCustomCategories, searchCustomPages } from "./db.js";
 import type { SearchResult } from "../../semantic/core/types.js";
+
+/** Matches the anchor slugs used on the /custom index page. */
+function categorySlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
 
 let localStorePromise: Promise<any> | null = null;
 let localEmbedder: any = null;
@@ -26,8 +31,24 @@ async function getLocalDeps() {
 
 async function customMatches(query: string): Promise<SearchResult[]> {
   try {
-    const pages = await searchCustomPages(query, 10);
-    return pages.map((p) => ({
+    const [categories, pages] = await Promise.all([
+      searchCustomCategories(query, 5),
+      searchCustomPages(query, 10),
+    ]);
+
+    const categoryResults: SearchResult[] = categories.map((c) => ({
+      address: `custom#${categorySlug(c.name)}`,
+      title: `${c.name} (custom category)`,
+      url: `/custom#${categorySlug(c.name)}`,
+      snippet:
+        c.description ||
+        `Custom category with ${c.pageCount} page${c.pageCount === 1 ? "" : "s"}`,
+      kind: "other" as const,
+      score: 1,
+      source: "keyword" as const,
+    }));
+
+    const pageResults: SearchResult[] = pages.map((p) => ({
       address: p.address,
       title: `${p.title} (custom)`,
       url: "/" + p.address,
@@ -36,6 +57,8 @@ async function customMatches(query: string): Promise<SearchResult[]> {
       score: 1,
       source: "keyword" as const,
     }));
+
+    return [...categoryResults, ...pageResults];
   } catch {
     return []; // no database — no custom results
   }
