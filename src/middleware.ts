@@ -2,8 +2,8 @@ import { defineMiddleware } from "astro:middleware";
 
 /**
  * Access gate: every incoming request is allowed only after an external
- * authorization service confirms it. The wiki POSTs
- * `{ type: "HasAccessToWiki", ip: <client ip> }` to the handler and expects a
+ * authorization service confirms it. The wiki POSTs plain form fields
+ * (`type=HasAccessToWiki&ip=<client ip>`) to the handler and expects a
  * `true`/`false` answer; on `false` the client gets a 403.
  *
  * Environment:
@@ -43,8 +43,8 @@ function clientIp(context: { request: Request; clientAddress?: string }): string
 async function askHandler(ip: string): Promise<boolean> {
   const res = await fetch(CHECK_URL, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ type: "HasAccessToWiki", ip }),
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ type: "HasAccessToWiki", ip }).toString(),
     signal: AbortSignal.timeout(HANDLER_TIMEOUT_MS),
   });
 

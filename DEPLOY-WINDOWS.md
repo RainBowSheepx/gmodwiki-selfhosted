@@ -81,7 +81,7 @@ node dist\server\entry.mjs
 ### Контроль доступа (атрибуты гейта)
 
 На каждый запрос сервер спрашивает внешний обработчик доступа:
-`POST https://example.com/handler` с телом `{"type": "HasAccessToWiki", "ip": "<ip клиента>"}`;
+`POST https://example.com/handler` с form-телом `type=HasAccessToWiki&ip=<ip клиента>`;
 ответ `true` — пускаем, `false` — клиент получает 403. Настройки через переменные окружения:
 
 | Переменная | Значение |
