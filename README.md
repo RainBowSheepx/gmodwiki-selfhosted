@@ -8,7 +8,6 @@
 - **Документация аддона Trolleybus System**: 547 страниц (библиотека, классы, 19 систем, entity, 28 хуков, информаторы) + генератор в `trolleybus_system/docs_generator`
 - **MCP-сервер** на `/mcp` (streamable HTTP) для ИИ-агентов
 - **Интеграция с VS Code**: эндпоинт `/gluadump.json` отдаёт документацию в формате плагина [vscode-glua-enhanced](https://github.com/WilliamVenner/vscode-glua-enhanced) (наш форк) — автодополнение/hover/сигнатуры с авто-обновлением
-- **Гейт доступа**: опциональная проверка каждого запроса через внешний обработчик
 
 ---
 
@@ -67,7 +66,6 @@ npm run astrobuild         # сборка сайта в dist/
 $env:HOST = "127.0.0.1"
 $env:PORT = "4321"
 $env:DATABASE_URL = "postgres://gmodwiki:gmodwiki@localhost:5432/gmodwiki"
-$env:ACCESS_CHECK_DISABLED = "1"   # см. «Гейт доступа»
 node dist\server\entry.mjs
 ```
 
@@ -132,7 +130,7 @@ GMODWIKI_DB_PASSWORD=change-me
   «заголовком» в сайдбаре (как классы на официальной вики);
 - у `<function>` есть атрибуты `github="…"` (куда ведёт Search Github) и
   `parentlink="…"` (адрес страницы родителя, если отличается от имени);
-- авторизации нет — редактировать может любой посетитель (см. «Гейт доступа»).
+- авторизации нет — редактировать может любой посетитель.
 
 ### Генератор документации Trolleybus System
 
@@ -144,23 +142,6 @@ node trolleybus_system/docs_generator/run.mjs
 
 Идемпотентно публикует страницы через API вики (создаёт/обновляет). Сигнатуры
 методов извлекаются из исходников аддона (`extract_sigs.mjs` → `signatures.json`).
-
----
-
-## Гейт доступа
-
-При включённом гейте сервер на каждый запрос спрашивает внешний обработчик:
-`POST <ACCESS_CHECK_URL>` с form-телом `type=HasAccessToWiki&ip=<ip клиента>`;
-ответ `true` — пускаем, иначе 403.
-
-| Переменная | Значение |
-|---|---|
-| `ACCESS_CHECK_URL` | URL обработчика (по умолчанию `https://example.com/handler`) |
-| `ACCESS_CHECK_DISABLED=1` | выключить гейт (локальная разработка) |
-| `ACCESS_CHECK_FAIL_CLOSED=1` | при недоступном обработчике запрещать (по умолчанию — пропускать) |
-
-Вердикт кешируется 60 сек на IP; за reverse-proxy берётся `X-Forwarded-For`.
-Статические файлы отдаются до гейта — для жёсткой блокировки ставьте reverse-proxy.
 
 ---
 
