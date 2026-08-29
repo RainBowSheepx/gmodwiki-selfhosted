@@ -1,201 +1,190 @@
-# GMod Wiki Mirror
-<p align="left">
-    <a href="https://discord.gg/5JUqZjzmYJ" alt="Discord Invite"><img src="https://img.shields.io/discord/981394195812085770?label=Support&logo=discord&logoColor=white" /></a>
-</p>
-This project scrapes and mirrors the GMod Wiki. It is fully self-hosted (Docker or bare Node) — no cloud services required.
+# GMod Wiki — self-hosted вики с документацией Trolleybus System
 
-It also includes a number of enhancements over the original.
+Форк [CFC-Servers/gmodwiki](https://github.com/CFC-Servers/gmodwiki), полностью избавленный от Cloudflare и расширенный:
 
-### Features
-- :dark_sunglasses: **Custom Darkmode** _([Thanks @Be1zebub/@Phoenixf129!](https://github.com/Be1zebub/Small-GLua-Things/blob/master/dark_wiki.js))_
-    - Alternatively, this mirror plays nicely with DarkReader!
-- :ship: **Self-hosting with Docker** — no cloud dependencies
-- :pencil: **Custom pages** _(new!)_
-    - Create your own pages/categories with class/function documentation at `/custom`
-    - Pages are written in [Facepunch wiki markup](https://wiki.facepunch.com/wiki/) (`<function>`, `<example>`, `<note>`, ...) and/or regular markdown, and render exactly like official pages
-    - Stored in PostgreSQL, so they survive official content updates
-    - Only custom pages are editable — official pages stay read-only to avoid conflicts with upstream updates
-    - No accounts, no auth: everyone can create and edit custom pages
-- :racing_car: **Performance enhancements**
-    - Significant performance improvements for CSS styling
-    - Reduced the total stylesheet size by nearly 90%
-    - Noticeable improvements to "Page-to-page" navigation speed
-    - Vastly improved navigation performance on Firefox
-- :brain: **Optimized memory usage**
-    - Caches page content in browser cache rather than Javascript memory
-- :mag_right: **Fast searching**
-    - Both basic and full-site searching are implemented
-    - Search results are not paginated
-    - Custom pages are included in search results
-- :robot: **Semantic search & MCP**
-    - Hybrid keyword + semantic search running fully locally (transformers.js), with a built-in MCP server for AI tools at `/mcp`
-- :framed_picture: **Optimized images**
-    - Image size reduced by > 40% with only a small loss in quality
-- :robot: **Automatic content updates**
-    - Rebuild the Docker image (or re-run the build) to pull the latest wiki content; custom pages are untouched
-- :hammer_and_wrench: **UI bug fixes**
-- **`?format=json` support**
-- **`~pagelist` support _(json format only)_**
-- **"Copy markdown link" button** _([Thanks TankNut!](https://github.com/TankNut))_
-- **Keyboard navigation/highlighting support for the sidebar**
-- All external links open in a new tab
+- **Self-hosted**: Node.js или Docker, никаких облачных сервисов
+- **Зеркало официальной вики** Garry's Mod (6300+ страниц, обновляется скрейпом)
+- **Custom-страницы в PostgreSQL**: свои функции/классы/хуки с рендером разметки Facepunch (`<function>`, `<example>`, …) и markdown — редактируются в браузере, официальные страницы read-only (обновления с wiki.facepunch.com никогда не конфликтуют)
+- **Документация аддона Trolleybus System**: 547 страниц (библиотека, классы, 19 систем, entity, 28 хуков, информаторы) + генератор в `trolleybus_system/docs_generator`
+- **MCP-сервер** на `/mcp` (streamable HTTP) для ИИ-агентов
+- **Интеграция с VS Code**: эндпоинт `/gluadump.json` отдаёт документацию в формате плагина [vscode-glua-enhanced](https://github.com/WilliamVenner/vscode-glua-enhanced) (наш форк) — автодополнение/hover/сигнатуры с авто-обновлением
+- **Гейт доступа**: опциональная проверка каждого запроса через внешний обработчик
 
-### Limitations
-Current limitations:
-- Official (scraped) pages cannot be edited — only custom pages can _(by design: official pages are overwritten on every update)_
-- No change history _(probably won't implement)_
-- All images are mirrored into the `.webp` format, which has [somewhat limited browser support](https://caniuse.com/webp)
-- The main page script.js is self-hosted and modified (for performance), meaning any useful updates will need to be manually backported
+---
 
-## Self-Hosting
+## Быстрый старт на Windows (Node.js + PostgreSQL)
 
-First, be sure you have [Docker installed](https://docs.docker.com/compose/install/).
+Требуется: **Node.js 20+**, **PostgreSQL 14+** (запущенный), git.
 
-### With [`docker compose`](https://docs.docker.com/compose/) _(recommended)_
+### 1. Установка зависимостей
 
-Download the [`docker-compose.yml`](https://github.com/CFC-Servers/gmodwiki/blob/main/docker-compose.yml) file from this repository and put it somewhere on your machine, then run:
+```powershell
+npm ci
+# при проблемах со sharp (нужен только для пересборки контента):
+npm install --force @img/sharp-win32-x64
+```
+
+### 2. База данных
+
+В psql под суперпользователем (`psql -U postgres`):
+
+```sql
+CREATE USER gmodwiki WITH PASSWORD 'gmodwiki';
+CREATE DATABASE gmodwiki OWNER gmodwiki;
+```
+
+Таблицы создавать не нужно — схема создаётся автоматически при первом обращении.
+Свой пароль/хост — через `DATABASE_URL` (см. ниже).
+
+Импорт готовой документации (547 страниц Trolleybus System из `db_backup/`):
+
+```powershell
+node db_backup/import_db.mjs
+```
+
+Скрипт идемпотентен (upsert), запускать можно повторно. Обратный экспорт: `node db_backup/export_db.mjs`.
+
+> Если PostgreSQL не установлен и ставить его не хочется, для локальной разработки
+> подойдёт [embedded-postgres](https://www.npmjs.com/package/embedded-postgres) —
+> обычный user-процесс без службы и прав администратора.
+
+### 3. Сборка контента официальной вики
+
+```powershell
+$env:SKIP_EMBEDDINGS="1"   # пропустить семантический поиск (быстрее; поиск будет keyword-only)
+npm run build              # скрейп wiki.facepunch.com, ~30-60 минут
+npm run astrobuild         # сборка сайта в dist/
+```
+
+Для быстрой тестовой сборки: `$env:PAGE_LIMIT="250"` (только 250 страниц).
+Если папки `public/` и `dist/` уже перенесены с другой машины — этот шаг не нужен.
+
+### 4. Запуск
+
+Из корня проекта (важно — рабочая директория должна быть корнем):
+
+```powershell
+$env:HOST = "127.0.0.1"
+$env:PORT = "4321"
+$env:DATABASE_URL = "postgres://gmodwiki:gmodwiki@localhost:5432/gmodwiki"
+$env:ACCESS_CHECK_DISABLED = "1"   # см. «Гейт доступа»
+node dist\server\entry.mjs
+```
+
+Проверка:
+- http://127.0.0.1:4321 — вики;
+- `/Trolleybus_System` — документация аддона;
+- `/custom` — управление custom-страницами;
+- `/gluadump.json` — дамп для VS Code-плагина;
+- `/mcp` — MCP endpoint.
+
+Автозапуск, файрвол, обновление контента — в [DEPLOY-WINDOWS.md](DEPLOY-WINDOWS.md).
+
+---
+
+## Запуск в Docker
 
 ```sh
 docker compose up -d
 ```
 
-This starts two containers:
-- `gmodwiki_web` — the wiki itself (http://localhost:4321)
-- `gmodwiki_db` — PostgreSQL, which stores your custom pages (persisted in the `gmodwiki_pgdata` volume)
+Поднимает контейнер вики + `postgres:16-alpine` (данные в volume `gmodwiki_pgdata`,
+схема создаётся сама). Настройки — через `.env`:
 
-You can configure the host/port/database password with a `.env` file next to `docker-compose.yml`:
 ```env
 GMODWIKI_HOST=127.0.0.1
 GMODWIKI_PORT=4321
 GMODWIKI_DB_PASSWORD=change-me
 ```
 
-If you want to expose the wiki instance to the world _(not recommended without a reverse proxy like Nginx)_:
-- Set `GMODWIKI_HOST=0.0.0.0`
-- Forward your chosen port _(`4321` by default)_ in your router/firewall
-- Visit your public IP in your browser: `http://<your IP>:<your port>`
+Образ собирает контент при `docker build` (полный скрейп). Импорт документации
+внутрь compose-базы: `DATABASE_URL=postgres://gmodwiki:<пароль>@localhost:5432/gmodwiki node db_backup/import_db.mjs`
+(проброс порта 5432 или выполнение изнутри сети compose).
 
-### With `docker run` _(without custom pages)_
+---
 
-The wiki works without a database — you just lose the ability to create custom pages:
+## Связка с VS Code-плагином
+
+Используется наш форк **vscode-glua-enhanced** (репозиторий рядом с этим).
+
+1. Соберите/установите плагин (см. README/BUILD.md в его репозитории):
+   ```sh
+   code --install-extension vscode-glua-enhanced-2.6.3.vsix
+   ```
+2. В настройках VS Code (`GLua Enhanced`):
+   - `glua-enhanced.customWiki.url` = адрес вики (по умолчанию `http://127.0.0.1:4321`)
+   - `glua-enhanced.customWiki.pollSeconds` = период проверки обновлений (по умолчанию 60)
+3. Плагин скачивает `/gluadump.json` и добавляет к официальному API всё, что
+   задокументировано на вики: `Trolleybus_System.*` (включая вложенные библиотеки),
+   методы классов (`Trolleybus:*`, системы, entity), хуки `TrolleybusSystem_*`
+   в `hook.Add(`/`hook.Call(`, имена событий в `Trolleybus_System.RunEvent("` /
+   `RunChangeEvent("` (без приставок/суффиксов). При изменении страниц на вики
+   плагин подхватывает их автоматически, без перезапуска VS Code.
+
+---
+
+## Custom-страницы
+
+- `/custom` — список категорий/страниц, создание, удаление (каскадное для категорий);
+- `/custom/edit` — редактор с live-превью; разметка Facepunch + markdown;
+- категории вкладываются через `/` в имени (`Trolleybus System/Systems`);
+- страница с адресом, совпадающим с путём/именем категории, становится её
+  «заголовком» в сайдбаре (как классы на официальной вики);
+- у `<function>` есть атрибуты `github="…"` (куда ведёт Search Github) и
+  `parentlink="…"` (адрес страницы родителя, если отличается от имени);
+- авторизации нет — редактировать может любой посетитель (см. «Гейт доступа»).
+
+### Генератор документации Trolleybus System
+
+`trolleybus_system/docs_generator/` — источник правды для всех 547 страниц:
 
 ```sh
-docker run --name gmodwiki -p 127.0.0.1:4321:4321 --rm -d ghcr.io/cfc-servers/gmodwiki:latest
+node trolleybus_system/docs_generator/run.mjs
 ```
 
-To enable custom pages, point it at your own PostgreSQL with `-e DATABASE_URL=postgres://user:pass@host:5432/db` (the schema is created automatically).
+Идемпотентно публикует страницы через API вики (создаёт/обновляет). Сигнатуры
+методов извлекаются из исходников аддона (`extract_sigs.mjs` → `signatures.json`).
 
-**Stopping the background container**:
+---
+
+## Гейт доступа
+
+При включённом гейте сервер на каждый запрос спрашивает внешний обработчик:
+`POST <ACCESS_CHECK_URL>` с form-телом `type=HasAccessToWiki&ip=<ip клиента>`;
+ответ `true` — пускаем, иначе 403.
+
+| Переменная | Значение |
+|---|---|
+| `ACCESS_CHECK_URL` | URL обработчика (по умолчанию `https://example.com/handler`) |
+| `ACCESS_CHECK_DISABLED=1` | выключить гейт (локальная разработка) |
+| `ACCESS_CHECK_FAIL_CLOSED=1` | при недоступном обработчике запрещать (по умолчанию — пропускать) |
+
+Вердикт кешируется 60 сек на IP; за reverse-proxy берётся `X-Forwarded-For`.
+Статические файлы отдаются до гейта — для жёсткой блокировки ставьте reverse-proxy.
+
+---
+
+## MCP для ИИ-агентов
+
 ```sh
-docker stop --time 1 gmodwiki
+claude mcp add --transport http gmodwiki http://127.0.0.1:4321/mcp
 ```
 
-### Updating wiki content
+Инструменты `search_wiki` (гибридный поиск) и `get_page` — видят и custom-страницы.
 
-Official page content is baked into the image at build time. To update it, pull the newest image (published daily) and restart:
+---
+
+## Обновление официального контента
+
+```powershell
+npm run build && npm run astrobuild   # и перезапустить сервер
+```
+
+Custom-страницы живут в PostgreSQL и обновлением не затрагиваются; занять адрес
+официальной страницы custom-страницей нельзя.
+
+## Тесты
 
 ```sh
-docker compose pull && docker compose up -d
+npm test   # 52 теста, включая байт-точное сравнение рендера с официальной вики
 ```
-
-Your custom pages live in PostgreSQL and are never touched by content updates.
-
-## Custom pages
-
-Open `/custom` (also linked in the sidebar) to browse and create pages, or `/custom/edit` to open the editor directly.
-
-- Pages support the official [Facepunch wiki markup](https://wiki.facepunch.com/wiki/): `<function>`, `<example>`, `<enumeration>`, `<structure>`, `<note>`, `<warning>`, `<bug>`, `<deprecated>`, `<page>`, `<key>`, ... plus regular markdown (headers, lists, tables, links, fenced ```lua code blocks with syntax highlighting)
-- The editor shows a live preview rendered exactly like official pages
-- Custom pages can't shadow official addresses, and official pages can't be edited — so updating the mirror from wiki.facepunch.com can never conflict with your content
-- Custom pages appear in search and are served to MCP clients via `get_page`
-
-## Use it in your AI assistant (MCP)
-
-Every instance ships its own [MCP](https://modelcontextprotocol.io) server at `http://<host>:<port>/mcp` (streamable HTTP), exposing `search_wiki` and `get_page` tools so assistants can look up GMod functions, hooks, and examples — including your custom pages.
-
-**Claude Code**:
-```sh
-claude mcp add --transport http gmodwiki http://localhost:4321/mcp
-```
-
-<details>
-    <summary>:point_up_2: Other clients (Cursor, VS Code, Claude Desktop, …)</summary>
-
-<br>
-
-**Cursor**: `~/.cursor/mcp.json`:
-```json
-{
-  "mcpServers": {
-    "gmodwiki": { "url": "http://localhost:4321/mcp", "transport": "streamable-http" }
-  }
-}
-```
-
-**VS Code (Copilot)**: `.vscode/mcp.json` (note: root key is `servers`):
-```json
-{
-  "servers": {
-    "gmodwiki": { "type": "http", "url": "http://localhost:4321/mcp" }
-  }
-}
-```
-
-**Claude Desktop / claude.ai**: Settings → Connectors → *Add custom connector* → `http://localhost:4321/mcp`
-
-**Any stdio-only client**: bridge with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
-```json
-{
-  "mcpServers": {
-    "gmodwiki": { "command": "npx", "args": ["-y", "mcp-remote", "http://localhost:4321/mcp"] }
-  }
-}
-```
-</details>
-
-### Teaching your assistant when to use it
-
-Usually you don't have to do anything: the server describes itself via the MCP `instructions` field (see [`semantic/core/tools.ts`](https://github.com/CFC-Servers/gmodwiki/blob/main/semantic/core/tools.ts)), and clients that support it (Claude Code, Claude Desktop, etc.) feed that to the assistant automatically.
-
-Some clients ignore server instructions, though. If your assistant isn't reaching for the tools when it should, add something like this to your project's rules file (`CLAUDE.md`, `AGENTS.md`, Cursor rules, ...):
-
-```markdown
-For any Garry's Mod Lua API question (functions, hooks, methods, enums, libraries), use the
-gmodwiki MCP tools instead of answering from memory: call `search_wiki` with a natural-language
-description of the task, then pass a result's `address` to `get_page` for the full documentation.
-```
-
-## Dev
-
-<details>
-    <summary>:point_up_2: Instructions/Details</summary>
-
-<br>
-
-Development should be fairly simple:
-```
-npm i;
-npm run build;
-npm run astrobuild;
-npm run preview;
-```
-
-For custom pages you also need PostgreSQL; the easiest way is:
-```
-docker run --name gmodwiki-pg -p 5432:5432 -e POSTGRES_USER=gmodwiki -e POSTGRES_PASSWORD=gmodwiki -e POSTGRES_DB=gmodwiki -d postgres:16-alpine
-```
-The app connects to `postgres://gmodwiki:gmodwiki@localhost:5432/gmodwiki` by default; override with `DATABASE_URL`.
-
-### Some dev notes:
-- The first `npm run build` will take awhile as it scrapes the main website
-    - Set `PAGE_LIMIT=200` to only build a subset of pages for quick local testing
-    - Set `SKIP_EMBEDDINGS=1` to skip the semantic-search embedding step (search falls back to keyword-only)
-- Those building on windows may need to run the following command to fix issues with `sharp`
-```
-npm install --force @img/sharp-win32-x64
-```
-- Once built:
-    - All downloaded page content will be cached into `./build/cache/`
-    - All downloaded static content will be cached to `./public/`
-    - You can remove either of these directories if you need to re-parse the remote content again
-</details>
