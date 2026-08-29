@@ -254,8 +254,11 @@ export async function buildGluaDump(origin: string): Promise<GluaDump> {
           SEARCH: HOOK_FAMILY,
           LINK: `${origin}/Trolleybus_System_Hooks`,
           DESCRIPTION: "Custom wiki hooks",
+          // These are hook.Add-able events (unlike ENT:/WEAPON: overrides), so
+          // the editor plugin includes them in hook.Add completions.
+          HOOK_ADD: true,
           MEMBERS: {},
-        };
+        } as DumpEntry & { HOOK_ADD: boolean };
       }
       wiki.HOOKS[HOOK_FAMILY].MEMBERS![name] = entry;
     } else if (type === "classfunc" || type === "panelfunc") {

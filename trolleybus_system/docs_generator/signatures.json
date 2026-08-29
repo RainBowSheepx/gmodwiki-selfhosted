@@ -1,0 +1,1342 @@
+{
+ "systems": {
+  "accumulatorbattery": {
+   "GetChargePercent": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetCharging": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetCircuit": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetLastAmperage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetLastVoltage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetLowVoltage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Server"
+   },
+   "IsActive": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "SetCharging": {
+    "args": "amp",
+    "realm": "Server"
+   },
+   "SetCircuit": {
+    "args": "circuit",
+    "realm": "Server"
+   },
+   "SetCircuitUsageDisabled": {
+    "args": "disabled",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Server"
+   }
+  },
+  "agit_132": {
+   "DrawScreen": {
+    "args": "drawscale,x,y",
+    "realm": "Client"
+   },
+   "GetRoute": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetStopText": {
+    "args": "inttext",
+    "realm": "Client"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsActive": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsPlaying": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsRouteState": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnChangeButtonPressed": {
+    "args": "isnext",
+    "realm": "Server"
+   },
+   "OnEditButtonPressed": {
+    "args": "",
+    "realm": "Server"
+   },
+   "OnPlayButtonPressed": {
+    "args": "",
+    "realm": "Server"
+   },
+   "OnReload": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "PlaySound": {
+    "args": "",
+    "realm": "Server"
+   },
+   "SetActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "SetRoute": {
+    "args": "route",
+    "realm": "Server"
+   },
+   "SetRouteState": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "Setup": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetupUnload": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "StopSound": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Server"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Shared"
+   }
+  },
+  "buzzer": {
+   "IsActive": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "SetActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Client"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "engine": {
+   "GetAmperage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetMoveSpeed": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetResistance": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetRotation": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Server"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "PreDriveWheelsRotationUpdate": {
+    "args": "group,data,rotdata",
+    "realm": "Server"
+   },
+   "SetAmperage": {
+    "args": "amperage",
+    "realm": "Server"
+   },
+   "SetAsGenerator": {
+    "args": "gen",
+    "realm": "Server"
+   },
+   "SetBrakeFraction": {
+    "args": "fr",
+    "realm": "Server"
+   },
+   "SetInverted": {
+    "args": "inverted",
+    "realm": "Server"
+   },
+   "SetRotation": {
+    "args": "rotation",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Client"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "handbrake": {
+   "GetAirFromSystem": {
+    "args": "air",
+    "realm": "Server"
+   },
+   "GetWheelsBrake": {
+    "args": "speed,isdrive",
+    "realm": "Server"
+   },
+   "SetActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "UpdatePneumaticAir": {
+    "args": "",
+    "realm": "Server"
+   }
+  },
+  "heater": {
+   "GetState": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Client"
+   },
+   "IsVentActive": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "SetState": {
+    "args": "state",
+    "realm": "Server"
+   },
+   "SetVentActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Client"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "horn": {
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "ShouldActive": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Shared"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "hydraulic_booster": {
+   "GetAmperage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetPowerFraction": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetSteerBoosterPowerFraction": {
+    "args": "",
+    "realm": "Server"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "SetAmperage": {
+    "args": "volt",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Client"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "interior_heater": {
+   "GetState": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsVentActive": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "SetState": {
+    "args": "state",
+    "realm": "Server"
+   },
+   "SetVentActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Client"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "ir_2002": {
+   "DrawDigits": {
+    "args": "drawscale,x,y",
+    "realm": "Client"
+   },
+   "GetRoute": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsActive": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsRouteState": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnChangeButtonPressed": {
+    "args": "isnext",
+    "realm": "Server"
+   },
+   "OnReload": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "PlaySound": {
+    "args": "",
+    "realm": "Server"
+   },
+   "SetActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "SetRoute": {
+    "args": "route",
+    "realm": "Server"
+   },
+   "SetRouteState": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "Setup": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetupUnload": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "StopSound": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Server"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Shared"
+   }
+  },
+  "motor_ventilator": {
+   "GetLowVoltage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetVoltage": {
+    "args": "",
+    "realm": "Server"
+   },
+   "IsActive": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "SetActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "SetCircuit": {
+    "args": "circuit",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Shared"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "multiscreen": {
+   "DisableScreen": {
+    "args": "name",
+    "realm": "Server"
+   },
+   "EnableScreen": {
+    "args": "name",
+    "realm": "Server"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsScreenDisabled": {
+    "args": "name",
+    "realm": "Shared"
+   },
+   "LoadScreen": {
+    "args": "name,data",
+    "realm": "Shared"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Server"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "UnloadScreen": {
+    "args": "name",
+    "realm": "Shared"
+   }
+  },
+  "nameplates": {
+   "DrawRoute": {
+    "args": "x,y,w,h,nfont,font,type,route",
+    "realm": "Client"
+   },
+   "GetNextRoute": {
+    "args": "route",
+    "realm": "Shared"
+   },
+   "GetPrevRoute": {
+    "args": "route",
+    "realm": "Shared"
+   },
+   "GetRoute": {
+    "args": "nameplate",
+    "realm": "Shared"
+   },
+   "GetRouteEnd": {
+    "args": "route",
+    "realm": "Client"
+   },
+   "GetRouteName": {
+    "args": "route",
+    "realm": "Client"
+   },
+   "GetRouteStart": {
+    "args": "route",
+    "realm": "Client"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetRoute": {
+    "args": "nameplate,route",
+    "realm": "Server"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Shared"
+   }
+  },
+  "pneumatic": {
+   "CanDoorsMove": {
+    "args": "name",
+    "realm": "Server"
+   },
+   "GetAir": {
+    "args": "receiver",
+    "realm": "Shared"
+   },
+   "GetBrake": {
+    "args": "chamber",
+    "realm": "Shared"
+   },
+   "GetBrakeControlFraction": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetBrakePressure": {
+    "args": "chamber",
+    "realm": "Shared"
+   },
+   "GetWheelsBrake": {
+    "args": "speed,isdrive",
+    "realm": "Server"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Server"
+   },
+   "IsMotorCompressorActive": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "ModifyDoorsSpeed": {
+    "args": "name",
+    "realm": "Client"
+   },
+   "OnDoorMove": {
+    "args": "name,opened",
+    "realm": "Server"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "SetAir": {
+    "args": "receiver,air",
+    "realm": "Server"
+   },
+   "SetBrake": {
+    "args": "chamber,brake",
+    "realm": "Server"
+   },
+   "SetMotorCompressorActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "ShouldBeMotorCompressorActive": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Shared"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "reductor": {
+   "GetLastDifference": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetLastDifferenceLerped": {
+    "args": "",
+    "realm": "Client"
+   },
+   "GetRotation": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetWheelsControl": {
+    "args": "speed,isdrive",
+    "realm": "Server"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Server"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "PostDriveWheelsRotationUpdate": {
+    "args": "group,data,rotdata",
+    "realm": "Server"
+   },
+   "SetRotation": {
+    "args": "rotation",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Shared"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "rksu": {
+   "ControlPedals": {
+    "args": "ply,dt,C,OC",
+    "realm": "Server"
+   },
+   "GetEngineBrakeFraction": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetPosition": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetResistance": {
+    "args": "",
+    "realm": "Server"
+   },
+   "HUDPaint": {
+    "args": "DrawText",
+    "realm": "Client"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Server"
+   },
+   "IsEngineAsGenerator": {
+    "args": "",
+    "realm": "Server"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "PlayContactorSound": {
+    "args": "type,lock",
+    "realm": "Server"
+   },
+   "SetContactorsActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "SetEngineAmperage": {
+    "args": "amperage",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Shared"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "staticvoltageconverter": {
+   "GetLowVoltage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetVoltage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsActive": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "SetCircuit": {
+    "args": "circuit",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Server"
+   }
+  },
+  "tisu": {
+   "ControlPedals": {
+    "args": "ply,dt,C,OC",
+    "realm": "Server"
+   },
+   "GetEngineAmperage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetEngineBrakeFraction": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetEngineRotation": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetResistance": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsEngineAsGenerator": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "PlayContactorSound": {
+    "args": "type,lock",
+    "realm": "Server"
+   },
+   "SetContactorsActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "SetEngineAmperage": {
+    "args": "amp",
+    "realm": "Server"
+   },
+   "SetEngineRotation": {
+    "args": "rotation",
+    "realm": "Server"
+   },
+   "SetTISUBlockActive": {
+    "args": "active",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Shared"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  },
+  "trsu": {
+   "ControlPedals": {
+    "args": "ply,dt,C,OC",
+    "realm": "Server"
+   },
+   "GetEngineAmperage": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetEngineBrakeFraction": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetResistance": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Server"
+   },
+   "IsEngineAsGenerator": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "SetEngineAmperage": {
+    "args": "amperage",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "dt",
+    "realm": "Shared"
+   },
+   "Unload": {
+    "args": "",
+    "realm": "Client"
+   }
+  }
+ },
+ "entities": {
+  "trolleybus_stop": {
+   "CanPassReachGoal": {
+    "args": "cur,goal,route",
+    "realm": "Server"
+   },
+   "Distance": {
+    "args": "vec1,vec2",
+    "realm": "Client"
+   },
+   "Draw": {
+    "args": "flags",
+    "realm": "Client"
+   },
+   "DrawTranslucent": {
+    "args": "flags",
+    "realm": "Client"
+   },
+   "GetMaxPassCount": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetNWVar": {
+    "args": "var,default",
+    "realm": "Shared"
+   },
+   "GetPassCountMult": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetPassengersForTrolleybus": {
+    "args": "bus",
+    "realm": "Server"
+   },
+   "GetRandomPassPos": {
+    "args": "",
+    "realm": "Client"
+   },
+   "GetRoutes": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetSize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetSpawnPassPos": {
+    "args": "",
+    "realm": "Client"
+   },
+   "GetSquare": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsTrolleybusInBounds": {
+    "args": "bus",
+    "realm": "Server"
+   },
+   "IsTrolleybusRouteRight": {
+    "args": "bus",
+    "realm": "Server"
+   },
+   "MovePass": {
+    "args": "ent,pos,ang",
+    "realm": "Client"
+   },
+   "NotifyShouldTransmit": {
+    "args": "should",
+    "realm": "Client"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnTrolleybusArrived": {
+    "args": "bus,route",
+    "realm": "Server"
+   },
+   "OnTrolleybusLeft": {
+    "args": "bus,route",
+    "realm": "Server"
+   },
+   "SetNWVar": {
+    "args": "var,value",
+    "realm": "Server"
+   },
+   "SetSize": {
+    "args": "l,w",
+    "realm": "Server"
+   },
+   "SetupDataTables": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetupTrolleybuses": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "UpdateData": {
+    "args": "dt",
+    "realm": "Server"
+   },
+   "UpdateTransmitState": {
+    "args": "",
+    "realm": "Server"
+   }
+  },
+  "trolleybus_trafficlight": {
+   "ClearClientEnts": {
+    "args": "",
+    "realm": "Client"
+   },
+   "ClearLenseModels": {
+    "args": "num",
+    "realm": "Client"
+   },
+   "CreateClientEnts": {
+    "args": "",
+    "realm": "Client"
+   },
+   "Draw": {
+    "args": "flags",
+    "realm": "Client"
+   },
+   "DrawFullLense": {
+    "args": "",
+    "realm": "Client"
+   },
+   "DrawLenseSprite": {
+    "args": "index,pos,ang,size,color,brightness",
+    "realm": "Client"
+   },
+   "DrawSprites": {
+    "args": "",
+    "realm": "Client"
+   },
+   "DrawTranslucent": {
+    "args": "flags",
+    "realm": "Client"
+   },
+   "GetLense": {
+    "args": "num",
+    "realm": "Shared"
+   },
+   "GetLenseData": {
+    "args": "num",
+    "realm": "Shared"
+   },
+   "GetStateUpdateTime": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsStopSignal": {
+    "args": "",
+    "realm": "Server"
+   },
+   "LightType": {
+    "args": "type",
+    "realm": "Shared"
+   },
+   "LoadBehaviour": {
+    "args": "data",
+    "realm": "Server"
+   },
+   "OnLenseUpdate": {
+    "args": "num,old,new",
+    "realm": "Client"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Client"
+   },
+   "SetLense": {
+    "args": "num,lense",
+    "realm": "Server"
+   },
+   "SetupDataTables": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetupDataTablesSV": {
+    "args": "",
+    "realm": "Server"
+   },
+   "SetupType": {
+    "args": "type",
+    "realm": "Server"
+   },
+   "SwitchState": {
+    "args": "num",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "UpdateClientEnts": {
+    "args": "transmit",
+    "realm": "Client"
+   },
+   "UpdateLenseModels": {
+    "args": "",
+    "realm": "Client"
+   },
+   "UpdateState": {
+    "args": "forceswitch",
+    "realm": "Server"
+   },
+   "UpdateTransmitState": {
+    "args": "",
+    "realm": "Server"
+   }
+  },
+  "trolleybus_traffic_car": {
+   "CalculateCollisionTimePos": {
+    "args": "ent",
+    "realm": "Server"
+   },
+   "CalcWheelFinalRotationSpeed": {
+    "args": "wheel,rspeed,dt",
+    "realm": "Server"
+   },
+   "CheckLoopStuck": {
+    "args": "",
+    "realm": "Server"
+   },
+   "ControlAI": {
+    "args": "task",
+    "realm": "Server"
+   },
+   "Draw": {
+    "args": "flags",
+    "realm": "Client"
+   },
+   "DrawSprites": {
+    "args": "",
+    "realm": "Client"
+   },
+   "DrawTranslucent": {
+    "args": "flags",
+    "realm": "Client"
+   },
+   "FindTrack": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetAllowedSpeed": {
+    "args": "pos",
+    "realm": "Server"
+   },
+   "GetMoveSpeed": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "GetNextTrack": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetSpeed": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetSqrDistToStop": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetSurfaceFriction": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetTraceDistance": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetTracingPos": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetTrack": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetTrackingPos": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetVehicleData": {
+    "args": "class",
+    "realm": "Shared"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "IsLookAroundEnt": {
+    "args": "ent",
+    "realm": "Server"
+   },
+   "IsObstacleEnt": {
+    "args": "ent",
+    "realm": "Server"
+   },
+   "IsOnTrack": {
+    "args": "",
+    "realm": "Server"
+   },
+   "IsWheelsFullStop": {
+    "args": "",
+    "realm": "Server"
+   },
+   "MoveTo": {
+    "args": "pos",
+    "realm": "Server"
+   },
+   "NotifyShouldTransmit": {
+    "args": "should",
+    "realm": "Client"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SelectNextTrack": {
+    "args": "",
+    "realm": "Server"
+   },
+   "SetRotate": {
+    "args": "ang",
+    "realm": "Server"
+   },
+   "SetRotateTo": {
+    "args": "pos",
+    "realm": "Server"
+   },
+   "SetSpeed": {
+    "args": "speed",
+    "realm": "Server"
+   },
+   "SetupDataTables": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetupDataTablesSV": {
+    "args": "",
+    "realm": "Server"
+   },
+   "SetupJamTrace": {
+    "args": "ontrack",
+    "realm": "Server"
+   },
+   "SetupVehicleClass": {
+    "args": "",
+    "realm": "Server"
+   },
+   "SetupWheels": {
+    "args": "",
+    "realm": "Server"
+   },
+   "SpawnFunction": {
+    "args": "ply,tr,class",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "TraceHull": {
+    "args": "startpos,endpos,filter",
+    "realm": "Server"
+   },
+   "UpdateClientEnts": {
+    "args": "transmit",
+    "realm": "Client"
+   },
+   "WheelsIsOnGround": {
+    "args": "",
+    "realm": "Server"
+   }
+  },
+  "trolleybus_polecatcher": {
+   "CanProperty": {
+    "args": "ply,property",
+    "realm": "Shared"
+   },
+   "CheckRopeCollision": {
+    "args": "",
+    "realm": "Server"
+   },
+   "ComputeDesiredPoleAngle": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Draw": {
+    "args": "",
+    "realm": "Client"
+   },
+   "DrawTranslucent": {
+    "args": "",
+    "realm": "Client"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Server"
+   },
+   "SetupDataTables": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetupMovePole": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "",
+    "realm": "Server"
+   },
+   "UpdateMoveNearAng": {
+    "args": "",
+    "realm": "Server"
+   },
+   "Use": {
+    "args": "ply",
+    "realm": "Server"
+   }
+  },
+  "trolleybus_wheel": {
+   "CalcFinalRotationSpeed": {
+    "args": "rspeed,dt",
+    "realm": "Server"
+   },
+   "CanProperty": {
+    "args": "ply,property",
+    "realm": "Shared"
+   },
+   "Draw": {
+    "args": "flags",
+    "realm": "Client"
+   },
+   "DrawTranslucent": {
+    "args": "flags",
+    "realm": "Client"
+   },
+   "GetAllConnectedWheels": {
+    "args": "",
+    "realm": "Server"
+   },
+   "GetBodyGroup": {
+    "args": "group",
+    "realm": "Shared"
+   },
+   "GetWheelData": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "Initialize": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "MovementSpeedToRotationSpeed": {
+    "args": "mspeed",
+    "realm": "Server"
+   },
+   "NotifyShouldTransmit": {
+    "args": "transmit",
+    "realm": "Client"
+   },
+   "OnRemove": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "PhysicsSimulate": {
+    "args": "phys,dt",
+    "realm": "Server"
+   },
+   "PhysicsUpdate": {
+    "args": "phys",
+    "realm": "Server"
+   },
+   "RotationSpeedToMovementSpeed": {
+    "args": "rspeed",
+    "realm": "Server"
+   },
+   "SetBodyGroup": {
+    "args": "group,value",
+    "realm": "Server"
+   },
+   "SetupDataTables": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "SetupType": {
+    "args": "type",
+    "realm": "Server"
+   },
+   "Think": {
+    "args": "",
+    "realm": "Shared"
+   },
+   "TransmitUpdate": {
+    "args": "",
+    "realm": "Server"
+   }
+  }
+ }
+}
