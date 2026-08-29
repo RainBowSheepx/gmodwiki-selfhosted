@@ -101,6 +101,27 @@ export async function dbAvailable(): Promise<boolean> {
   }
 }
 
+/** All pages including markup — used by the editor-plugin dump (/gluadump.json). */
+export async function listCustomPagesWithMarkup(): Promise<
+  Pick<CustomPage, "address" | "title" | "category" | "markup" | "description" | "updated_at">[]
+> {
+  const pool = await getPool();
+  const res = await pool.query(
+    `SELECT address, title, category, markup, description, updated_at FROM custom_pages ORDER BY address`,
+  );
+  return res.rows;
+}
+
+/** Cheap change marker for the whole custom-pages set. */
+export async function customPagesVersion(): Promise<string> {
+  const pool = await getPool();
+  const res = await pool.query(
+    `SELECT count(*)::int AS n, coalesce(max(updated_at), 'epoch'::timestamptz) AS m FROM custom_pages`,
+  );
+  const { n, m } = res.rows[0];
+  return `${new Date(m).getTime()}:${n}`;
+}
+
 export async function listCustomPages(): Promise<Omit<CustomPage, "markup" | "html">[]> {
   const pool = await getPool();
   const res = await pool.query(
