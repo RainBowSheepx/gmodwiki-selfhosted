@@ -1,6 +1,5 @@
 import type { APIRoute } from "astro";
-import { customPagesVersion } from "../lib/db.js";
-import { getGluaDump } from "../lib/gluadump.js";
+import { dumpVersion, getGluaDump } from "../lib/gluadump.js";
 import { errorResponse, jsonResponse, withDb } from "../lib/custom_pages.js";
 
 /**
@@ -12,7 +11,7 @@ import { errorResponse, jsonResponse, withDb } from "../lib/custom_pages.js";
 export const GET: APIRoute = async ({ url }) =>
   withDb(async () => {
     if (url.searchParams.get("check")) {
-      return jsonResponse({ version: await customPagesVersion() });
+      return jsonResponse({ version: await dumpVersion() });
     }
 
     try {

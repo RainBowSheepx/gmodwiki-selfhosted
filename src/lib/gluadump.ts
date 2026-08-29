@@ -142,6 +142,15 @@ function parseRealms(realmText: string): { CLIENT?: boolean; SERVER?: boolean; M
 
 const HOOK_FAMILY = "TROLLEYBUS";
 
+// Bump whenever the dump STRUCTURE changes (new fields, different shapes):
+// it is part of the version string, so plugins refetch even though the pages
+// themselves did not change.
+const DUMP_FORMAT = 2;
+
+export async function dumpVersion(): Promise<string> {
+  return `${DUMP_FORMAT}:${await customPagesVersion()}`;
+}
+
 function buildEntry(
   page: { address: string; markup: string },
   fn: { attrs: Record<string, string>; inner: string },
@@ -221,7 +230,7 @@ function libraryContainer(root: Record<string, DumpEntry>, path: string, origin:
 
 export async function buildGluaDump(origin: string): Promise<GluaDump> {
   const pages = await listCustomPagesWithMarkup();
-  const version = await customPagesVersion();
+  const version = await dumpVersion();
 
   const wiki: GluaDump["wiki"] = { GLOBALS: {}, CLASSES: {}, LIBRARIES: {}, HOOKS: {} };
   const classPages = new Map<string, { address: string; description: string }>();
@@ -257,8 +266,15 @@ export async function buildGluaDump(origin: string): Promise<GluaDump> {
           // These are hook.Add-able events (unlike ENT:/WEAPON: overrides), so
           // the editor plugin includes them in hook.Add completions.
           HOOK_ADD: true,
+          // The addon fires them through wrappers that prepend the prefix
+          // (and, for change events, append the suffix); the plugin uses this
+          // to complete the un-prefixed event names inside those calls.
+          EVENT_PREFIX: "TrolleybusSystem_",
+          CHANGE_SUFFIX: "Changed",
+          RUN_EVENT_FUNCS: ["Trolleybus_System.RunEvent"],
+          RUN_CHANGE_EVENT_FUNCS: ["Trolleybus_System.RunChangeEvent"],
           MEMBERS: {},
-        } as DumpEntry & { HOOK_ADD: boolean };
+        } as any;
       }
       wiki.HOOKS[HOOK_FAMILY].MEMBERS![name] = entry;
     } else if (type === "classfunc" || type === "panelfunc") {
@@ -291,7 +307,7 @@ export async function buildGluaDump(origin: string): Promise<GluaDump> {
 let cached: GluaDump | null = null;
 
 export async function getGluaDump(origin: string): Promise<GluaDump> {
-  const version = await customPagesVersion();
+  const version = await dumpVersion();
   if (!cached || cached.version !== version) {
     cached = await buildGluaDump(origin);
   }
