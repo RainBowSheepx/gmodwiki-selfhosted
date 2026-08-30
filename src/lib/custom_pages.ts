@@ -65,7 +65,42 @@ function escapeAttr(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-const AUTOGEN_PLACEHOLDER = `<div class="autogen-methods"></div>`;
+const AUTOGEN_MARKER = `class="autogen-methods"`;
+const AUTOGEN_RE = /<div class="autogen-methods"(?: data-category="([^"]*)")?><\/div>/g;
+
+function unescapeAttr(text: string): string {
+  return text.replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+}
+
+/**
+ * The category a page "owns": the deepest category whose path suffix matches
+ * the page address (same convention the sidebar uses for page-backed
+ * categories). E.g. a page `DCoolButton` owns `My Addon/GUI/DCoolButton`
+ * even while the page itself is filed under `My Addon/GUI`.
+ */
+function ownedCategory(
+  page: Pick<CustomPage, "address" | "category">,
+  categories: Iterable<string>,
+): string | null {
+  const address = page.address.toLowerCase();
+  let best: string | null = null;
+  let bestDepth = -1;
+
+  for (const category of categories) {
+    const parts = category.split("/");
+    for (let i = 0; i < parts.length; i++) {
+      if (parts.slice(i).join("/").toLowerCase() === address) {
+        if (parts.length > bestDepth) {
+          best = category;
+          bestDepth = parts.length;
+        }
+        break;
+      }
+    }
+  }
+
+  return best;
+}
 
 function shortMemberTitle(pageTitle: string, memberTitle: string): string {
   for (const sep of [":", "."]) {
@@ -140,41 +175,43 @@ function memberLine(
  * Runs at SERVE time, so the list always reflects the current page set.
  */
 export async function expandAutoMethods(page: Pick<CustomPage, "address" | "title" | "category">, html: string): Promise<string> {
-  if (!html.includes(AUTOGEN_PLACEHOLDER)) return html;
+  if (!html.includes(AUTOGEN_MARKER)) return html;
 
-  let listHtml = "";
   try {
     const all = await listCustomPagesWithMarkup();
-    const prefix = page.category + "/";
-    const members = all.filter(
-      (p) => p.address !== page.address && (p.category === page.category || p.category.startsWith(prefix)),
-    );
+    const categories = new Set(all.map((p) => p.category));
 
-    // Pages directly in the category first, then one group per immediate
-    // subcategory (deeper levels are flattened into their group).
-    const direct: typeof members = [];
-    const groups = new Map<string, typeof members>();
-    for (const member of members) {
-      if (member.category === page.category) {
-        direct.push(member);
-      } else {
-        const groupName = member.category.slice(prefix.length).split("/")[0];
-        if (!groups.has(groupName)) groups.set(groupName, []);
-        groups.get(groupName)!.push(member);
+    const buildList = (category: string): string => {
+      const prefix = category + "/";
+      const members = all.filter(
+        (p) => p.address !== page.address && (p.category === category || p.category.startsWith(prefix)),
+      );
+      if (members.length === 0) return "";
+
+      // Pages directly in the category first, then one group per immediate
+      // subcategory (deeper levels are flattened into their group).
+      const direct: typeof members = [];
+      const groups = new Map<string, typeof members>();
+      for (const member of members) {
+        if (member.category === category) {
+          direct.push(member);
+        } else {
+          const groupName = member.category.slice(prefix.length).split("/")[0];
+          if (!groups.has(groupName)) groups.set(groupName, []);
+          groups.get(groupName)!.push(member);
+        }
       }
-    }
 
-    const renderGroup = (pages: typeof members) =>
-      `<div class="section">` +
-      pages
-        .slice()
-        .sort((a, b) => a.title.localeCompare(b.title))
-        .map((p) => memberLine(p, page.title))
-        .join("") +
-      `</div>`;
+      const renderGroup = (pages: typeof members) =>
+        `<div class="section">` +
+        pages
+          .slice()
+          .sort((a, b) => a.title.localeCompare(b.title))
+          .map((p) => memberLine(p, page.title))
+          .join("") +
+        `</div>`;
 
-    if (members.length > 0) {
-      listHtml += `<div class="type">\n<div class="members"><h1>Methods<a class="anchor" href="#methods"><i class="mdi mdi-link-variant"></i></a><a name="methods" class="anchor_offset"></a></h1>\n`;
+      let listHtml = `<div class="type">\n<div class="members"><h1>Methods<a class="anchor" href="#methods"><i class="mdi mdi-link-variant"></i></a><a name="methods" class="anchor_offset"></a></h1>\n`;
       if (direct.length > 0) listHtml += renderGroup(direct);
       for (const [groupName, groupPages] of [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
         const slug = groupName.toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -182,13 +219,22 @@ export async function expandAutoMethods(page: Pick<CustomPage, "address" | "titl
         listHtml += renderGroup(groupPages);
       }
       listHtml += `</div></div>`;
-    }
+      return listHtml;
+    };
+
+    // Source category per placeholder: explicit category="..." attribute wins,
+    // then the category this page owns (path suffix = page address, like the
+    // sidebar), then the category the page is filed under.
+    const defaultCategory = ownedCategory(page, categories) ?? page.category;
+
+    AUTOGEN_RE.lastIndex = 0;
+    return html.replace(AUTOGEN_RE, (_m, categoryAttr) =>
+      buildList(categoryAttr ? unescapeAttr(categoryAttr) : defaultCategory),
+    );
   } catch (e: any) {
     console.warn("autogen methods expansion failed:", e?.message ?? e);
     return html;
   }
-
-  return html.split(AUTOGEN_PLACEHOLDER).join(listHtml);
 }
 
 /**

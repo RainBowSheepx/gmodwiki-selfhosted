@@ -66,6 +66,9 @@ print(ok)
             and regular markdown. The preview below updates as you type.
             On <code>&lt;function&gt;</code> you can set <code>github="https://github.com/Owner/Repo"</code>
             to point the "Search Github" button at your repository.
+            <code>&lt;methods/&gt;</code> auto-lists the pages of the category this page owns
+            (its address matches the category path tail); pin another source with
+            <code>&lt;methods category="Some/Category"/&gt;</code>.
         </p>
 
         <div class="editor-grid">
@@ -111,6 +114,11 @@ print(ok)
     }
     @media (max-width: 1100px) {
         .editor-grid { grid-template-columns: 1fr; }
+    }
+    /* Grid items default to min-width:auto — wide preview content (e.g. long
+       code lines) would otherwise stretch its column and crush the editor */
+    .editor-grid > .editor-pane {
+        min-width: 0;
     }
     .editor-pane label {
         display: block;
@@ -163,7 +171,16 @@ print(ok)
         border-radius: 6px;
         padding: 0.9em;
         min-height: 420px;
+        max-width: 100%;
         overflow-x: auto;
+    }
+    /* Wide blocks scroll inside the preview instead of blowing up the layout */
+    .preview-box :global(.code),
+    .preview-box :global(table),
+    .preview-box :global(.function_line),
+    .preview-box :global(.syntax) {
+        overflow-x: auto;
+        max-width: 100%;
     }
 </style>
 

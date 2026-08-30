@@ -295,10 +295,14 @@ export function renderRichText(ctx: RenderContext, text: string, opts: RichTextO
   );
 
   // <methods/> — placeholder replaced at serve time with the auto-generated
-  // list of pages living in this page's category (incl. subcategories)
-  src = src.replace(/<methods\s*\/>|<methods\s*>\s*<\/methods>/gi, () =>
-    `\n\n${ph.add(`<div class="autogen-methods"></div>`)}\n\n`,
-  );
+  // list of pages living in this page's category (incl. subcategories).
+  // Optional attribute: <methods category="Some/Category"/> pins the source
+  // category explicitly.
+  src = src.replace(/<methods\b([^>]*?)\/>|<methods\b([^>]*?)>\s*<\/methods>/gi, (_m, a1, a2) => {
+    const attrs = parseAttrs(a1 ?? a2 ?? "");
+    const categoryAttr = attrs.category ? ` data-category="${escapeAttr(attrs.category)}"` : "";
+    return `\n\n${ph.add(`<div class="autogen-methods"${categoryAttr}></div>`)}\n\n`;
+  });
 
   // Block-level notice tags
   for (const tag of Object.keys(NOTICE_TAGS)) {

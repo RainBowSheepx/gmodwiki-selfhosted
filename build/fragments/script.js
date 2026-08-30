@@ -590,9 +590,12 @@ function InitCustomSidebar() {
       }
 
       // Same classes the original sidebar uses: cm = member dot, f =
-      // function, rc/rs/rm = realm colors, e = has example.
+      // function, rc/rs/rm = realm colors, e = has example. Any page that
+      // declares a <realm> gets the colored dot, not only functions.
       function leafClasses(p) {
-        if (!(hasTag(p, "function") || hasTag(p, "enum") || hasTag(p, "struct"))) return "";
+        var hasRealm = hasTag(p, "realm-client") || hasTag(p, "realm-server") || hasTag(p, "realm-menu");
+        var isMember = hasTag(p, "function") || hasTag(p, "enum") || hasTag(p, "struct") || hasTag(p, "panel");
+        if (!isMember && !hasRealm) return "";
         var cls = ["cm"];
         if (hasTag(p, "function")) cls.push("f");
         if (hasTag(p, "realm-client")) cls.push("rc");
