@@ -877,11 +877,16 @@ function InitCustomSidebar(replace) {
         contents.appendChild(header);
         contents.appendChild(section);
 
-        // the freshly built section starts collapsed — re-apply the saved
-        // sidebar state to it (and re-apply the scroll now that the sidebar
-        // has its full height)
+        // The freshly built section starts collapsed — re-apply the saved
+        // sidebar state to it, and highlight the current page if its link
+        // lives in this section (a custom page opened via full load builds
+        // the sidebar in either order relative to Navigate.Install).
         applySidebarOpenState();
-        applySidebarScroll();
+        if (Navigate.pageContent) Navigate.UpdateSidebar();
+        if (!applySidebarScroll()) {
+          var active = document.getElementById("sidebar").getElementsByClassName("active");
+          if (active.length == 1) active[0].scrollIntoView({ block: "center" });
+        }
       }
     })
     .catch(function (e) {
