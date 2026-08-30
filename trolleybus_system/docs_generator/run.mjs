@@ -3,10 +3,28 @@ import { corePages } from "./pages_core.mjs";
 import { restPages } from "./pages_rest.mjs";
 import { systemsPages } from "./pages_systems.mjs";
 import { methodPages } from "./pages_methods.mjs";
+import { resolveSource } from "./sourcemap.mjs";
 
 const BASE = "http://127.0.0.1:4321";
 // later files override earlier versions of the same address (POST 409 -> PUT)
 const pages = [...corePages, ...restPages, ...systemsPages, ...methodPages];
+
+// Every function page whose definition is found in the addon sources gets a
+// <file> tag (the "View Source" button, linking into the github= repo).
+let sourced = 0;
+const unsourced = [];
+for (const p of pages) {
+  if (!/<function\s/.test(p.markup) || p.markup.includes("<file ")) continue;
+  if (/type="hook"/.test(p.markup)) continue;
+  const src = resolveSource(p);
+  if (src) {
+    p.markup = p.markup.replace("</realm>\n", `</realm>\n\t<file line="${src.start}-L${src.end}">${src.file}</file>\n`);
+    sourced++;
+  } else {
+    unsourced.push(p.address);
+  }
+}
+console.log(`view-source: ${sourced} pages linked${unsourced.length ? `, UNRESOLVED: ${unsourced.join(", ")}` : ""}`);
 
 async function api(path, method, body) {
   const res = await fetch(BASE + path, {

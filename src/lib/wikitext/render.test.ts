@@ -100,6 +100,29 @@ describe("renderWikitext", () => {
     expect(html).not.toContain("Facepunch/garrysmod");
   });
 
+  it("renders a View Source link from the file tag (official format)", () => {
+    const markup = `<function name="CallOnRemove" parent="Entity" type="classfunc">
+	<description>Test.</description>
+	<realm>Shared</realm>
+	<file line="120-L132">lua/includes/extensions/entity.lua</file>
+</function>`;
+    const { html } = renderWikitext(markup, ctx);
+    expect(html).toContain(
+      `<a target="_blank" href="https://github.com/Facepunch/garrysmod/blob/master/garrysmod/lua/includes/extensions/entity.lua#L120-L132" target="_blank"><i class="mdi mdi-source-branch"></i> View Source</a>\n<a target="_blank" href="https://github.com/Facepunch/garrysmod/search`
+    );
+  });
+
+  it("roots View Source at the custom repo when github is set", () => {
+    const markup = `<function name="Draw" parent="Deck" type="classfunc" github="https://github.com/Owner/Repo">
+	<description>Test.</description>
+	<realm>Server</realm>
+	<file line="10-L20">lua/deck/draw.lua</file>
+</function>`;
+    const { html } = renderWikitext(markup, ctx);
+    expect(html).toContain(`href="https://github.com/Owner/Repo/blob/master/lua/deck/draw.lua#L10-L20"`);
+    expect(html).not.toContain("garrysmod/lua/deck");
+  });
+
   it("supports parentlink for subjects living at a different address", () => {
     const markup = `<function name="ControlPedals" parent="TISU" parentlink="Systems/TISU" type="classfunc">
 	<description>Test.</description>

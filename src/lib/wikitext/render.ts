@@ -548,6 +548,7 @@ function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner
 
   const description = firstTag(inner, "description")?.inner ?? "";
   const realmText = firstTag(inner, "realm")?.inner ?? "Shared";
+  const fileTag = firstTag(inner, "file");
   const argsExtract = extractCallbacks(firstTag(inner, "args")?.inner ?? "");
   const retsExtract = extractCallbacks(firstTag(inner, "rets")?.inner ?? "");
 
@@ -592,9 +593,21 @@ function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner
   // repository (e.g. an addon's repo) instead of Facepunch's.
   const repo = (attrs.github ?? "https://github.com/Facepunch/garrysmod").replace(/\/+$/, "");
 
+  // `<file line="120-L132">lua/includes/extensions/entity.lua</file>` adds a
+  // "View Source" link. The official wiki serves Facepunch repo files from the
+  // garrysmod/ subdirectory; custom repos (github attr) keep paths repo-rooted.
+  let viewSource = "";
+  const filePath = fileTag?.inner.trim() ?? "";
+  if (filePath) {
+    const prefix = attrs.github ? "" : "garrysmod/";
+    const lineAttr = (fileTag!.attrs.line ?? "").trim();
+    const anchor = lineAttr ? `#L${lineAttr.replace(/^L/, "")}` : "";
+    viewSource = `<a target="_blank" href="${escapeAttr(`${repo}/blob/master/${prefix}${filePath}${anchor}`)}" target="_blank"><i class="mdi mdi-source-branch"></i> View Source</a>\n`;
+  }
+
   let html = `<div class="${classes.join(" ")}">\n`;
   html += `<div class="function_line">${line}</div>`;
-  html += `<div class="function_links">\n<a target="_blank" href="${escapeAttr(repo)}/search?utf8=%E2%9C%93&amp;q=${encodeURIComponent(qualifiedName).replace(/%3A/g, ":")}" target="_blank"><i class="mdi mdi-github-box"></i> Search Github</a>\n</div>\n`;
+  html += `<div class="function_links">\n${viewSource}<a target="_blank" href="${escapeAttr(repo)}/search?utf8=%E2%9C%93&amp;q=${encodeURIComponent(qualifiedName).replace(/%3A/g, ":")}" target="_blank"><i class="mdi mdi-github-box"></i> Search Github</a>\n</div>\n`;
 
   // --- description ----------------------------------------------------
   html += sectionHeader("Description");
