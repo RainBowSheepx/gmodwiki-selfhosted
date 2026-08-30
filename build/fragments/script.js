@@ -27,10 +27,17 @@ class Navigate {
     if (address === "" || address === "/" || address === "//")
       address = "/index";
 
-    // The custom-page editor opens through the same content swap (its logic
-    // is wired by InitCustomEditor afterwards) — no reload, sidebar untouched
-    if (address.split("?")[0].toLowerCase() === "/custom/edit")
-      return this.ToEditor(address, push);
+    // App pages (the editor, the custom-pages index) open through the same
+    // content swap — no reload, sidebar untouched. Their behaviour is wired
+    // by the init hook after injection (innerHTML scripts never execute).
+    var path = address.split("?")[0].toLowerCase().replace(/\/$/, "");
+    if (path === "/custom/edit") {
+      var query = address.indexOf("?") >= 0 ? address.substring(address.indexOf("?")) : "";
+      return this.ToAppPage("/content/custom/edit.json" + query, address, push, InitCustomEditor);
+    }
+    if (path === "/custom") {
+      return this.ToAppPage("/content/custom.json", address, push, InitCustomIndex);
+    }
 
     var newData;
     this.pageTitle2.innerText = "Loading..";
@@ -90,13 +97,11 @@ class Navigate {
     return false;
   }
 
-  static ToEditor(address, push = true) {
-    var query = address.indexOf("?") >= 0 ? address.substring(address.indexOf("?")) : "";
-
+  static ToAppPage(jsonUrl, address, push, init) {
     this.pageTitle2.innerText = "Loading..";
     this.pageContent.parentElement.classList.add("loading");
 
-    fetch("/content/custom/edit.json" + query, { method: "GET" })
+    fetch(jsonUrl, { method: "GET" })
       .then((r) => r.json())
       .then((json) => {
         if (push) history.pushState({}, "", address);
@@ -107,7 +112,7 @@ class Navigate {
           this.pageContent.parentElement.classList.remove("loading");
 
           requestAnimationFrame(() => {
-            InitCustomEditor();
+            if (init) init();
             this.UpdateSidebar();
             if (window.innerWidth <= 780) {
               document.getElementById("sidebar").classList.remove("visible");
@@ -155,6 +160,12 @@ class Navigate {
     if (address.indexOf("#") > 0)
       address = address.substring(0, address.indexOf("#"));
 
+    // While editing an existing page, its sidebar entry stays highlighted
+    if (location.pathname.toLowerCase().replace(/\/$/, "") === "/custom/edit") {
+      var editAddr = new URLSearchParams(location.search).get("address");
+      if (editAddr) address = new URL("/" + editAddr, location.origin).href;
+    }
+
     for (var i = 0; i < links.length; i++) {
       var a = links[i];
 
@@ -196,13 +207,19 @@ class Navigate {
 
     if (this.pageContent == null) return true;
 
+    // Hard loads have no active link marked server-side — highlight (and
+    // reveal) the current page's sidebar entry right away.
+    this.UpdateSidebar();
+
     var thisHost = window.location.host;
     // Links that must never go through the JSON content loader: anchors,
-    // special pages, anything with a query string, the API, and app pages
-    // like /custom. The editor (/custom/edit) is the exception — ToPage
-    // routes it through the client-side content swap.
+    // special pages, anything with a query string, and the API. The app
+    // pages — the editor (/custom/edit) and the custom-pages index
+    // (/custom) — are exceptions: ToPage routes them through the
+    // client-side content swap.
     var skipNav = (val) => {
-      if (val.indexOf("/custom/edit") === 0) return false;
+      var path = val.split("?")[0].replace(/\/$/, "");
+      if (path === "/custom/edit" || path === "/custom") return false;
       return (
         val.indexOf("#") >= 0 ||
         val.indexOf("~") >= 0 ||
@@ -676,8 +693,8 @@ function UpdateLiveButton() {
 // Builds the "Custom Wiki" sidebar section from the database-backed custom
 // pages/categories. Category names use "/" for nesting (e.g. "MyAddon/Hooks").
 // Links get a `search` attribute so the sidebar quick-search finds them.
-function InitCustomSidebar() {
-  if (document.getElementById("custom-wiki-section")) return;
+function InitCustomSidebar(replace) {
+  if (!replace && document.getElementById("custom-wiki-section")) return;
   Promise.all([
     fetch("/api/custom/pages").then((r) => (r.ok ? r.json() : null)),
     fetch("/api/custom/categories").then((r) => (r.ok ? r.json() : null)),
@@ -826,7 +843,8 @@ function InitCustomSidebar() {
       }
 
       var contents = document.getElementById("contents");
-      if (!contents || document.getElementById("custom-wiki-section")) return;
+      if (!contents) return;
+      if (!replace && document.getElementById("custom-wiki-section")) return;
       var header = document.createElement("div");
       header.className = "sectionheader";
       header.id = "custom-wiki-header";
@@ -841,14 +859,30 @@ function InitCustomSidebar() {
       if (visiblePagesOf(root).length > 0) {
         section.appendChild(render({ children: {}, pages: root.pages }, "Uncategorized", "", 1));
       }
-      contents.appendChild(header);
-      contents.appendChild(section);
+      var oldHeader = document.getElementById("custom-wiki-header");
+      var oldSection = document.getElementById("custom-wiki-section");
+      if (oldSection) {
+        // Refresh after a save/delete: snapshot the LIVE sidebar state first,
+        // swap the section in place (the sidebar never shrinks, so the scroll
+        // position can't clamp), then restore that exact state onto the fresh
+        // nodes — open categories, search, scroll all stay put.
+        saveSidebarState();
+        if (oldHeader) oldHeader.replaceWith(header);
+        else contents.insertBefore(header, oldSection);
+        oldSection.replaceWith(section);
+        applySidebarOpenState();
+        applySidebarScroll();
+        if (Navigate.pageContent) Navigate.UpdateSidebar();
+      } else {
+        contents.appendChild(header);
+        contents.appendChild(section);
 
-      // the freshly built section starts collapsed — re-apply the saved
-      // sidebar state to it (and re-apply the scroll now that the sidebar
-      // has its full height)
-      applySidebarOpenState();
-      applySidebarScroll();
+        // the freshly built section starts collapsed — re-apply the saved
+        // sidebar state to it (and re-apply the scroll now that the sidebar
+        // has its full height)
+        applySidebarOpenState();
+        applySidebarScroll();
+      }
     })
     .catch(function (e) {
       console.warn("custom sidebar unavailable", e);
@@ -856,13 +890,82 @@ function InitCustomSidebar() {
 }
 
 // Rebuilds the Custom Wiki sidebar section from the API — called after a page
-// is saved, so a new page/category shows up without any reload.
+// or category changes, so the sidebar updates without any reload. The section
+// is swapped atomically and the live sidebar state (open categories, search,
+// scroll) is carried over.
 function RefreshCustomSidebar() {
-  var header = document.getElementById("custom-wiki-header");
-  var section = document.getElementById("custom-wiki-section");
-  if (header) header.remove();
-  if (section) section.remove();
-  InitCustomSidebar();
+  InitCustomSidebar(true);
+}
+
+// Wires up the custom-pages index (/custom): delete buttons and the
+// new-category form. Runs on direct loads and after Navigate swaps the index
+// into #pagecontent. No-op on other pages.
+function InitCustomIndex() {
+  var form = document.getElementById("new-category-form");
+  if (!form) return;
+
+  // Instead of location.reload(): re-render the index in place and refresh
+  // the sidebar section — nothing else on the page moves.
+  var rerender = () => {
+    RefreshCustomSidebar();
+    Navigate.ToPage("/custom", false);
+  };
+
+  document.querySelectorAll(".page-delete").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const address = btn.dataset.address;
+      if (!confirm(`Delete page '${address}'? This cannot be undone.`)) return;
+      try {
+        const res = await fetch("/api/custom/pages/" + encodeURIComponent(address), { method: "DELETE" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        rerender();
+      } catch (err) {
+        alert("Delete failed: " + err.message);
+      }
+    });
+  });
+
+  document.querySelectorAll(".cat-delete").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const name = btn.dataset.name;
+      if (!confirm(`Delete category '${name}' (including its subcategories)?`)) return;
+      try {
+        let res = await fetch("/api/custom/categories?name=" + encodeURIComponent(name), { method: "DELETE" });
+        let data = await res.json();
+        if (res.status === 409 && data.pagesInTree) {
+          if (!confirm(`Category '${name}' still contains ${data.pagesInTree} page(s), including subcategories. Delete the pages too?`)) return;
+          res = await fetch("/api/custom/categories?name=" + encodeURIComponent(name) + "&pages=1", { method: "DELETE" });
+          data = await res.json();
+        }
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        rerender();
+      } catch (err) {
+        alert("Delete failed: " + err.message);
+      }
+    });
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const status = document.getElementById("category-status");
+    status.textContent = "Saving...";
+    try {
+      const res = await fetch("/api/custom/categories", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: document.getElementById("category-name").value,
+          description: document.getElementById("category-description").value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      rerender();
+    } catch (err) {
+      status.textContent = "Error: " + err.message;
+    }
+  });
 }
 
 // Wires up the custom-page editor (preview, save, delete). Runs on direct
@@ -959,7 +1062,10 @@ function InitCustomEditor() {
         );
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || res.statusText);
-        window.location.href = "/custom";
+        // swap to the custom-pages index — no reload, the sidebar keeps
+        // its state — and drop the deleted page from the sidebar section
+        RefreshCustomSidebar();
+        Navigate.ToPage("/custom");
       } catch (err) {
         status.textContent = "Error: " + err.message;
       }
@@ -973,6 +1079,7 @@ function InitCustomEditor() {
 function InitCustomExtras() {
   InitCustomSidebar();
   InitCustomEditor();
+  InitCustomIndex();
   UpdateLiveButton();
 }
 
