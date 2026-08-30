@@ -501,6 +501,46 @@ function parseArgLike(inner: string, tag: string): ArgSpec[] {
   return out;
 }
 
+/**
+ * `<callback>` blocks nest `<arg>` tags inside an outer `<arg>`, which breaks
+ * the flat arg regex — so they are cut out first and re-attached by index.
+ */
+function extractCallbacks(inner: string): { protected: string; callbacks: string[] } {
+  const callbacks: string[] = [];
+  const protectedInner = inner.replace(/<callback>([\s\S]*?)<\/callback>/gi, (_m, cbInner) => {
+    callbacks.push(cbInner);
+    return `\x02CB${callbacks.length - 1}\x02`;
+  });
+  return { protected: protectedInner, callbacks };
+}
+
+/** Official-style callback signature block (see Entity:CallOnRemove). */
+function renderCallbackArgs(ctx: RenderContext, inner: string): string {
+  const cbArgs = parseArgLike(inner, "arg");
+  let out = `<div class="callback_args">Function argument(s):\n`;
+  cbArgs.forEach((a, idx) => {
+    const desc = renderRichText(ctx, a.desc, { compact: true }) || "No description given.";
+    out += `<div><span class="numbertag">${idx + 1}</span> ${typeLink(ctx, a.type)} <strong>${escapeHtml(a.name)}</strong> - ${desc}</div>\n`;
+  });
+  out += `</div>`;
+  return out;
+}
+
+/** Renders an arg/ret description, expanding embedded callback placeholders. */
+function renderArgDesc(ctx: RenderContext, desc: string, callbacks: string[]): string {
+  const tokens: number[] = [];
+  const plain = desc.replace(/\x02CB(\d+)\x02/g, (_m, n) => {
+    tokens.push(Number(n));
+    return "";
+  });
+
+  let out = renderRichText(ctx, plain.trim(), { compact: true });
+  for (const tokenIndex of tokens) {
+    if (callbacks[tokenIndex] !== undefined) out += renderCallbackArgs(ctx, callbacks[tokenIndex]);
+  }
+  return out;
+}
+
 function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner: string): { html: string; classes: string[] } {
   const name = attrs.name ?? "";
   const parent = attrs.parent ?? "";
@@ -508,11 +548,11 @@ function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner
 
   const description = firstTag(inner, "description")?.inner ?? "";
   const realmText = firstTag(inner, "realm")?.inner ?? "Shared";
-  const argsInner = firstTag(inner, "args")?.inner ?? "";
-  const retsInner = firstTag(inner, "rets")?.inner ?? "";
+  const argsExtract = extractCallbacks(firstTag(inner, "args")?.inner ?? "");
+  const retsExtract = extractCallbacks(firstTag(inner, "rets")?.inner ?? "");
 
-  const args = parseArgLike(argsInner, "arg");
-  const rets = parseArgLike(retsInner, "ret");
+  const args = parseArgLike(argsExtract.protected, "arg");
+  const rets = parseArgLike(retsExtract.protected, "ret");
 
   const realms = parseRealms(realmText);
   const classes = ["function", type, ...realms.map((r) => `realm-${r}`)];
@@ -567,7 +607,7 @@ function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner
     args.forEach((a, idx) => {
       html += `<div><span class="numbertag">${idx + 1}</span> ${typeLink(ctx, a.type)} <span class="name">${escapeHtml(a.name)}</span>`;
       if (a.default !== undefined) html += `<span class="default"> = ${escapeHtml(a.default)}</span>`;
-      html += `<div class="numbertagindent">${renderRichText(ctx, a.desc, { compact: true })}</div></div>`;
+      html += `<div class="numbertagindent">${renderArgDesc(ctx, a.desc, argsExtract.callbacks)}</div></div>`;
     });
     html += `</div>`;
   }
@@ -578,7 +618,7 @@ function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner
     html += `<div class="function_returns section">`;
     rets.forEach((r, idx) => {
       html += `<div><span class="numbertag">${idx + 1}</span> ${typeLink(ctx, r.type)} <span class="name">${escapeHtml(r.name)}</span>`;
-      html += `<div class="numbertagindent">${renderRichText(ctx, r.desc, { compact: true })}</div></div>`;
+      html += `<div class="numbertagindent">${renderArgDesc(ctx, r.desc, retsExtract.callbacks)}</div></div>`;
     });
     html += `</div>`;
   }

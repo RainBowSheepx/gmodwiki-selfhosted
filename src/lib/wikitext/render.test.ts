@@ -136,6 +136,36 @@ describe("renderWikitext", () => {
     expect(html).toContain(`<p><strong>Default:</strong> <code>1</code></p>`);
   });
 
+  it("renders callback signatures inside function args (official format)", () => {
+    const markup = `<function name="CallOnRemove" parent="Entity" type="classfunc">
+	<description>Adds a remove callback.</description>
+	<realm>Shared</realm>
+	<args>
+		<arg name="identifier" type="any">Identifier used with <page>Entity:RemoveCallOnRemove</page>.</arg>
+		<arg name="removeFunc" type="function">Function to be called on remove.
+
+<callback>
+<arg type="Entity" name="ent">The entity about to be removed.</arg>
+<arg type="vararg" name="data">Data passed from the arguments to \`CallOnRemove\`.</arg>
+</callback>
+</arg>
+		<arg name="args" type="vararg">Optional arguments to pass to removeFunc.</arg>
+	</args>
+</function>`;
+    const { html } = renderWikitext(markup, ctx);
+    // outer args parsed correctly despite the nested <arg> tags
+    expect(html).toContain(`<span class="name">identifier</span>`);
+    expect(html).toContain(`<span class="name">removeFunc</span>`);
+    expect(html).toContain(`<span class="name">args</span>`);
+    // callback block in the official format
+    expect(html).toContain(`<div class="callback_args">Function argument(s):`);
+    expect(html).toContain(`<a class="link-page exists" href="/Entity">Entity</a> <strong>ent</strong> - The entity about to be removed.`);
+    expect(html).toContain(`<strong>data</strong> - Data passed from the arguments to <code>CallOnRemove</code>.`);
+    // no stray placeholder or raw callback tags
+    expect(html).not.toContain("\x02");
+    expect(html).not.toContain("<callback>");
+  });
+
   it("renders the methods placeholder for serve-time expansion", () => {
     const { html } = renderWikitext("# My Class\n\nIntro.\n\n<methods/>", ctx);
     expect(html).toContain(`<div class="autogen-methods"></div>`);

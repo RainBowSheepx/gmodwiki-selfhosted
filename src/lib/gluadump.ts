@@ -14,6 +14,8 @@ interface DumpArg {
   TYPE: string;
   DESCRIPTION?: string;
   DEFAULT?: string;
+  /** Signature of a function-type argument (from a nested <callback> block). */
+  CALLBACK?: { NAME: string; TYPE: string; DESCRIPTION?: string }[];
 }
 
 interface DumpEntry {
@@ -146,7 +148,7 @@ const HOOK_FAMILY = "TROLLEYBUS";
 // Bump whenever the dump STRUCTURE changes (new fields, different shapes):
 // it is part of the version string, so plugins refetch even though the pages
 // themselves did not change.
-const DUMP_FORMAT = 2;
+const DUMP_FORMAT = 3;
 
 export async function dumpVersion(): Promise<string> {
   return `${DUMP_FORMAT}:${await customPagesVersion()}`;
@@ -166,8 +168,17 @@ function buildEntry(
   const parsed = parseDescription(descTag?.inner ?? "", origin);
   const realms = parseRealms(firstTag(fn.inner, "realm")?.inner ?? "Shared");
 
-  const argsInner = firstTag(fn.inner, "args")?.inner ?? "";
-  const retsInner = firstTag(fn.inner, "rets")?.inner ?? "";
+  // <callback> blocks nest <arg> tags inside an outer <arg>: cut them out
+  // before flat parsing and reattach by placeholder index
+  const callbacks: string[] = [];
+  const protect = (text: string) =>
+    text.replace(/<callback>([\s\S]*?)<\/callback>/gi, (_m, cbInner) => {
+      callbacks.push(cbInner);
+      return `\x02CB${callbacks.length - 1}\x02`;
+    });
+
+  const argsInner = protect(firstTag(fn.inner, "args")?.inner ?? "");
+  const retsInner = protect(firstTag(fn.inner, "rets")?.inner ?? "");
 
   const separator = type === "classfunc" || type === "hook" || type === "panelfunc" ? ":" : ".";
   const search = type === "hook" || !parent || parent === "Global" ? name : `${parent}${separator}${name}`;
@@ -191,19 +202,39 @@ function buildEntry(
   if (args.length) {
     entry.ARGUMENTS = args.map((a) => {
       const arg: DumpArg = { NAME: a.name || "arg", TYPE: a.type };
-      if (a.desc) arg.DESCRIPTION = toMarkdown(a.desc, origin);
+
+      const cbTokens: number[] = [];
+      const plainDesc = a.desc.replace(/\x02CB(\d+)\x02/g, (_m, n) => {
+        cbTokens.push(Number(n));
+        return "";
+      });
+
+      if (plainDesc.trim()) arg.DESCRIPTION = toMarkdown(plainDesc.trim(), origin);
       if (a.default !== undefined) arg.DEFAULT = a.default;
+
+      for (const tokenIndex of cbTokens) {
+        if (callbacks[tokenIndex] === undefined) continue;
+        arg.CALLBACK = parseArgLike(callbacks[tokenIndex], "arg").map((cb) => ({
+          NAME: cb.name || "arg",
+          TYPE: cb.type,
+          ...(cb.desc ? { DESCRIPTION: toMarkdown(cb.desc, origin) } : {}),
+        }));
+      }
+
       return arg;
     });
   }
 
   const rets = parseArgLike(retsInner, "ret");
   if (rets.length) {
-    entry.RETURNS = rets.map((r) => ({
-      TYPE: r.type,
-      ...(r.name ? { NAME: r.name } : {}),
-      ...(r.desc ? { DESCRIPTION: toMarkdown(r.desc, origin) } : {}),
-    }));
+    entry.RETURNS = rets.map((r) => {
+      const desc = r.desc.replace(/\x02CB\d+\x02/g, "").trim();
+      return {
+        TYPE: r.type,
+        ...(r.name ? { NAME: r.name } : {}),
+        ...(desc ? { DESCRIPTION: toMarkdown(desc, origin) } : {}),
+      };
+    });
   }
 
   return { entry, name, parent, type };
