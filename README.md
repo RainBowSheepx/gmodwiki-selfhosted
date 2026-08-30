@@ -150,6 +150,10 @@ node trolleybus_system/docs_generator/run.mjs
 скачивается с GitHub и распаковывается туда автоматически. Целевая вики задаётся
 переменной `WIKI_BASE` (по умолчанию `http://127.0.0.1:4321`).
 
+Подробное описание всех файлов генератора и его устройства —
+в [trolleybus_system/docs_generator/README.md](trolleybus_system/docs_generator/README.md).
+Генератор — хороший образец того, как документировать на этой вики любой другой аддон.
+
 ---
 
 ## MCP для ИИ-агентов

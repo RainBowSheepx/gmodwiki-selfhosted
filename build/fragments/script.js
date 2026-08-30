@@ -502,6 +502,99 @@ window.addEventListener("keydown", (e) => {
   e.preventDefault();
 });
 
+// ---- persistent sidebar state --------------------------------------------
+// Full page loads (opening the custom-page editor, saving a page, F5) used to
+// reset the sidebar: open categories collapsed and the quick-search cleared.
+// A snapshot (open/closed state of every category, search text, scroll
+// position) is stored on pagehide and restored on the next load. Categories
+// are keyed by the path of their summary titles, so the snapshot survives
+// sidebar rebuilds and applies to the async-built Custom Wiki section too.
+var SIDEBAR_STATE_KEY = "gmodwiki-sidebar-state";
+
+function sidebarDetailsKey(d) {
+  var parts = [];
+  var node = d;
+  while (node && node.id !== "sidebar") {
+    if (node.tagName === "DETAILS") {
+      var s = node.firstElementChild;
+      parts.unshift(s && s.tagName === "SUMMARY" ? s.textContent.trim() : "?");
+    }
+    node = node.parentElement;
+  }
+  return parts.join(">");
+}
+
+function saveSidebarState() {
+  try {
+    var sidebar = document.getElementById("sidebar");
+    if (!sidebar) return;
+    var open = {};
+    var details = sidebar.getElementsByTagName("details");
+    for (var i = 0; i < details.length; i++) {
+      open[sidebarDetailsKey(details[i])] = details[i].open;
+    }
+    // #contents (the category tree) and #searchresults are the actual
+    // scrollable panes inside the sidebar
+    var contents = document.getElementById("contents");
+    var results = document.getElementById("searchresults");
+    localStorage.setItem(
+      SIDEBAR_STATE_KEY,
+      JSON.stringify({
+        open: open,
+        search: SearchInput ? SearchInput.value : "",
+        scroll: contents ? contents.scrollTop : 0,
+        resultsScroll: results ? results.scrollTop : 0,
+      }),
+    );
+  } catch (e) {}
+}
+
+function loadSidebarState() {
+  try {
+    var raw = localStorage.getItem(SIDEBAR_STATE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Re-applies the saved open/closed state to every category currently in the
+// DOM. Runs on load and again after the Custom Wiki section is built.
+function applySidebarOpenState() {
+  var state = loadSidebarState();
+  if (!state || !state.open) return;
+  var sidebar = document.getElementById("sidebar");
+  if (!sidebar) return;
+  var details = sidebar.getElementsByTagName("details");
+  for (var i = 0; i < details.length; i++) {
+    var key = sidebarDetailsKey(details[i]);
+    if (key in state.open) details[i].open = state.open[key];
+  }
+}
+
+function applySidebarScroll() {
+  var state = loadSidebarState();
+  if (!state) return false;
+  var contents = document.getElementById("contents");
+  var results = document.getElementById("searchresults");
+  if (contents && typeof state.scroll === "number") contents.scrollTop = state.scroll;
+  if (results && typeof state.resultsScroll === "number") results.scrollTop = state.resultsScroll;
+  return (state.scroll || 0) > 0 || (state.resultsScroll || 0) > 0;
+}
+
+// Restores the quick-search text (needs InitSearch to have run). Returns
+// whether anything was restored, so the caller can fall back to the default
+// "scroll active link into view" behaviour.
+function applySidebarSearch() {
+  var state = loadSidebarState();
+  if (!state || !state.search || !SearchInput) return false;
+  SearchInput.value = state.search;
+  UpdateSearch();
+  return true;
+}
+
+window.addEventListener("pagehide", saveSidebarState);
+
 // Custom pages carry an invisible #custom-page-marker element: on them the
 // header "Live" button (which links to the official wiki) becomes an "Edit"
 // button opening the page in the custom-page editor.
@@ -691,6 +784,12 @@ function InitCustomSidebar() {
       }
       contents.appendChild(header);
       contents.appendChild(section);
+
+      // the freshly built section starts collapsed — re-apply the saved
+      // sidebar state to it (and re-apply the scroll now that the sidebar
+      // has its full height)
+      applySidebarOpenState();
+      applySidebarScroll();
     })
     .catch(function (e) {
       console.warn("custom sidebar unavailable", e);
@@ -742,12 +841,7 @@ function setupLastParsed() {
 
 window.addEventListener("load", () => {
   requestAnimationFrame(() => {
-    var sidebar = document.getElementById("sidebar");
-    var active = sidebar.getElementsByClassName("active");
-    if (active.length == 1) {
-      active[0].scrollIntoView({ smooth: true, block: "center" });
-    }
-
+    applySidebarOpenState();
     UpdateLiveButton();
 
     requestAnimationFrame(() => {
@@ -755,6 +849,18 @@ window.addEventListener("load", () => {
       Navigate.Install();
       setupLastParsed();
       InitCustomSidebar();
+
+      // restore the search text and scroll position; without a saved state
+      // fall back to centering the active page link like before
+      var searchRestored = applySidebarSearch();
+      var scrollRestored = applySidebarScroll();
+      if (!searchRestored && !scrollRestored) {
+        var sidebar = document.getElementById("sidebar");
+        var active = sidebar.getElementsByClassName("active");
+        if (active.length == 1) {
+          active[0].scrollIntoView({ smooth: true, block: "center" });
+        }
+      }
     });
   });
 });
