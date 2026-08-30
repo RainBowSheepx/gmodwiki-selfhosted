@@ -27,16 +27,29 @@ class Navigate {
     if (address === "" || address === "/" || address === "//")
       address = "/index";
 
+    // Cross-page anchors ("/Page#section") swap the content like any other
+    // link, then scroll to the anchor once it exists in the new DOM.
+    var hash = "";
+    var hashIdx = address.indexOf("#");
+    if (hashIdx >= 0) {
+      hash = address.substring(hashIdx);
+      address = address.substring(0, hashIdx) || "/index";
+    }
+
     // App pages (the editor, the custom-pages index) open through the same
     // content swap — no reload, sidebar untouched. Their behaviour is wired
     // by the init hook after injection (innerHTML scripts never execute).
     var path = address.split("?")[0].toLowerCase().replace(/\/$/, "");
     if (path === "/custom/edit") {
       var query = address.indexOf("?") >= 0 ? address.substring(address.indexOf("?")) : "";
-      return this.ToAppPage("/content/custom/edit.json" + query, address, push, InitCustomEditor);
+      return this.ToAppPage("/content/custom/edit.json" + query, address, push, InitCustomEditor, hash);
     }
     if (path === "/custom") {
-      return this.ToAppPage("/content/custom.json", address, push, InitCustomIndex);
+      return this.ToAppPage("/content/custom.json", address, push, InitCustomIndex, hash);
+    }
+    if (path === "/websearch") {
+      var searchQuery = address.indexOf("?") >= 0 ? address.substring(address.indexOf("?")) : "";
+      return this.ToAppPage("/content/websearch.json" + searchQuery, address, push, null, hash);
     }
 
     var newData;
@@ -76,7 +89,7 @@ class Navigate {
       })
       .then(() => {
         if (push) {
-          history.pushState({}, "", address);
+          history.pushState({}, "", address + hash);
         }
 
         requestAnimationFrame(() => {
@@ -85,6 +98,7 @@ class Navigate {
           this.pageContent.parentElement.classList.remove("loading");
 
           requestAnimationFrame(() => {
+            this.ScrollToAnchor(hash);
             this.UpdateSidebar();
             if (window.innerWidth <= 780) {
               var e = document.getElementById("sidebar");
@@ -97,14 +111,21 @@ class Navigate {
     return false;
   }
 
-  static ToAppPage(jsonUrl, address, push, init) {
+  static ScrollToAnchor(hash) {
+    if (!hash || hash.length < 2) return;
+    var name = hash.substring(1);
+    var el = document.getElementById(name) || document.getElementsByName(name)[0];
+    if (el) el.scrollIntoView();
+  }
+
+  static ToAppPage(jsonUrl, address, push, init, hash) {
     this.pageTitle2.innerText = "Loading..";
     this.pageContent.parentElement.classList.add("loading");
 
     fetch(jsonUrl, { method: "GET" })
       .then((r) => r.json())
       .then((json) => {
-        if (push) history.pushState({}, "", address);
+        if (push) history.pushState({}, "", address + (hash || ""));
 
         requestAnimationFrame(() => {
           window.scrollTo(0, 0);
@@ -113,6 +134,7 @@ class Navigate {
 
           requestAnimationFrame(() => {
             if (init) init();
+            this.ScrollToAnchor(hash);
             this.UpdateSidebar();
             if (window.innerWidth <= 780) {
               document.getElementById("sidebar").classList.remove("visible");
@@ -194,11 +216,8 @@ class Navigate {
   }
 
   static OnNavigated(event) {
-    let address = document.location.href;
-    if (address.indexOf("#") > 0)
-      address = address.substring(0, address.indexOf("#"));
-
-    this.ToPage(address, false);
+    // the hash is kept: ToPage strips it and scrolls to the anchor after swap
+    this.ToPage(document.location.href, false);
   }
 
   static Install() {
@@ -218,10 +237,12 @@ class Navigate {
     // (/custom) — are exceptions: ToPage routes them through the
     // client-side content swap.
     var skipNav = (val) => {
-      var path = val.split("?")[0].replace(/\/$/, "");
-      if (path === "/custom/edit" || path === "/custom") return false;
+      var path = val.split(/[?#]/)[0].replace(/\/$/, "");
+      if (path === "/custom/edit" || path === "/custom" || path === "/websearch") return false;
+      // same-page fragments jump natively; cross-page anchors ("/Page#x")
+      // go through the content swap and scroll after it
+      if (val.charAt(0) === "#") return true;
       return (
-        val.indexOf("#") >= 0 ||
         val.indexOf("~") >= 0 ||
         val.indexOf("?") >= 0 ||
         val.indexOf("/custom") === 0 ||
@@ -395,7 +416,7 @@ function InitSearch() {
   });
   SearchInput.addEventListener("keyup", (e) => {
     if (e.keyCode == 13) {
-      window.location.href = "/websearch?query=" + SearchInput.value;
+      Navigate.ToPage("/websearch?query=" + encodeURIComponent(SearchInput.value));
     }
   });
 }
@@ -474,8 +495,11 @@ function AddFullSearchCTA(query) {
     '<span class="mdi mdi-magnify"></span> Search all pages for ' +
     '<strong>"' + query.replace(/</g, "&lt;") + '"</strong>' +
     '<span class="full-search-hint">&#8629; Enter</span>';
-  cta.onclick = function () {
-    window.location.href = "/websearch?query=" + encodeURIComponent(query);
+  cta.onclick = function (e) {
+    // clicks on inner elements (<strong>, the icon) bypass the sidebar's
+    // link interceptor, and stopPropagation avoids a double ToPage from it
+    e.stopPropagation();
+    Navigate.ToPage("/websearch?query=" + encodeURIComponent(query));
     return false;
   };
   SearchResults.appendChild(cta);

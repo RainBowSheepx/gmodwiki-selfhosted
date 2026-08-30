@@ -1,41 +1,14 @@
 ---
 import Layout from "@layouts/Layout.astro";
-import { highlightTerms } from "../../semantic/core/highlight.js";
+import { buildWebSearchPage } from "../lib/websearch_page.js";
 
-interface SearchResult {
-  address: string; title: string; url: string; snippet: string; score: number;
-  source: "keyword" | "semantic" | "both";
-}
-
+// Direct loads of /websearch render the same results body that
+// /content/websearch.json serves for client-side opens (script.js swaps it
+// into #pagecontent without a full reload).
 const query = Astro.url.searchParams.get("query") || "";
-const endpoint = `${Astro.url.protocol}//${Astro.url.host}/websearch.json?query=${encodeURIComponent(query)}`;
-const results: SearchResult[] = await (await fetch(endpoint)).json();
+const page = await buildWebSearchPage(Astro.url.origin, query);
 ---
 
-<Layout title="Search Results" description="Garry's Mod Wiki" views="" updated="">
-  <h2>Searching for: "{query}"</h2>
-  {results.length === 0 && <p>No results found.</p>}
-  {results.map((result) => (
-    <div class="section">
-      <h3>
-        <a href={result.url}>{result.title}</a>
-        <span class="search-source" data-source={result.source}>{result.source}</span>
-      </h3>
-      <div>
-        {highlightTerms(result.snippet, query).map((run) =>
-          run.match ? <span class="highlight">{run.text}</span> : <span>{run.text}</span>,
-        )}
-      </div>
-    </div>
-  ))}
+<Layout title={page.title} description="Garry's Mod Wiki" views="" updated="">
+  <Fragment set:html={page.html} />
 </Layout>
-
-<style>
-  .search-source {
-    font-size: 0.7em;
-    opacity: 0.6;
-    margin-left: 0.5em;
-    text-transform: uppercase;
-  }
-  .highlight { font-weight: 700; }
-</style>
