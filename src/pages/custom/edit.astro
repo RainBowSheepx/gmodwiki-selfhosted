@@ -182,7 +182,12 @@ print(ok)
             const res = await fetch("/api/custom/preview", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ markup: markupInput.value }),
+                body: JSON.stringify({
+                    markup: markupInput.value,
+                    address: addressInput.value.trim(),
+                    title: titleInput.value,
+                    category: categoryInput.value,
+                }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || res.statusText);

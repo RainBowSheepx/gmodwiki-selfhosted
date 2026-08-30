@@ -294,6 +294,12 @@ export function renderRichText(ctx: RenderContext, text: string, opts: RichTextO
     `\n\n${ph.add(renderCodeFence("lua", code, ctx))}\n\n`,
   );
 
+  // <methods/> — placeholder replaced at serve time with the auto-generated
+  // list of pages living in this page's category (incl. subcategories)
+  src = src.replace(/<methods\s*\/>|<methods\s*>\s*<\/methods>/gi, () =>
+    `\n\n${ph.add(`<div class="autogen-methods"></div>`)}\n\n`,
+  );
+
   // Block-level notice tags
   for (const tag of Object.keys(NOTICE_TAGS)) {
     src = src.replace(new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)</${tag}>`, "gi"), (_m, attrString, inner) =>
@@ -671,6 +677,29 @@ function renderStructure(ctx: RenderContext, inner: string): { html: string; cla
 }
 
 /* ------------------------------------------------------------------ */
+/* panel blocks (custom GUI elements, vgui.Create-able)                */
+/* ------------------------------------------------------------------ */
+
+function renderPanel(ctx: RenderContext, attrs: Record<string, string>, inner: string): { html: string; classes: string[] } {
+  const description = firstTag(inner, "description")?.inner ?? "";
+  const parent = firstTag(inner, "parent")?.inner.trim() ?? "";
+  const realmText = firstTag(inner, "realm")?.inner ?? "Client";
+  const realms = parseRealms(realmText);
+
+  let html = `<div class="type panel">\n`;
+  html += sectionHeader("Description");
+  html += `<div class="description_section section">${renderRichText(ctx, description.trim())}</div>`;
+
+  if (parent) {
+    html += sectionHeader("Parent", false);
+    html += `<div class="section"><p>Derives methods, etc not listed on this page from ${pageLink(ctx, parent)}.</p>\n</div>`;
+  }
+
+  html += `</div>`;
+  return { html, classes: ["panel", ...realms.map((r) => `realm-${r}`)] };
+}
+
+/* ------------------------------------------------------------------ */
 /* top level                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -724,6 +753,10 @@ export function renderWikitext(markup: string, ctx: RenderContext): RenderedPage
       const st = renderStructure(ctx, inner);
       html += st.html;
       st.classes.forEach((c) => tagSet.add(c));
+    } else if (tag === "panel") {
+      const pn = renderPanel(ctx, attrs, inner);
+      html += pn.html;
+      pn.classes.forEach((c) => tagSet.add(c));
     } else {
       // panel/type and anything unrecognized: render inner as rich text
       renderTextSegment(inner);

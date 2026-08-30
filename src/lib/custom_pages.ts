@@ -5,6 +5,7 @@
 
 import { renderWikitext } from "./wikitext/render.js";
 import { buildPageExists, getOfficialPageSet } from "./pages.js";
+import { listCustomPages } from "./db.js";
 import type { CustomPage } from "./db.js";
 
 /** Route prefixes that can never be page addresses. */
@@ -61,6 +62,83 @@ function customMarker(page: CustomPage): string {
 
 function escapeAttr(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+const AUTOGEN_PLACEHOLDER = `<div class="autogen-methods"></div>`;
+
+function shortMemberTitle(pageTitle: string, memberTitle: string): string {
+  for (const sep of [":", "."]) {
+    if (memberTitle.startsWith(pageTitle + sep)) return memberTitle.slice(pageTitle.length + sep.length);
+  }
+  return memberTitle;
+}
+
+function trimDescription(text: string, max = 160): string {
+  const clean = (text ?? "").replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.lastIndexOf(" ", max - 3);
+  return clean.slice(0, cut > 40 ? cut : max - 3) + "...";
+}
+
+/**
+ * Replaces the `<methods/>` placeholder with a generated list of every page
+ * living in this page's category and its subcategories — so class pages don't
+ * have to maintain their method lists by hand (official-wiki style).
+ *
+ * Runs at SERVE time, so the list always reflects the current page set.
+ */
+export async function expandAutoMethods(page: Pick<CustomPage, "address" | "title" | "category">, html: string): Promise<string> {
+  if (!html.includes(AUTOGEN_PLACEHOLDER)) return html;
+
+  let listHtml = "";
+  try {
+    const all = await listCustomPages();
+    const prefix = page.category + "/";
+    const members = all.filter(
+      (p) => p.address !== page.address && (p.category === page.category || p.category.startsWith(prefix)),
+    );
+
+    // Group: pages directly in the category first, then one group per
+    // immediate subcategory (deeper levels are flattened into their group).
+    const direct: typeof members = [];
+    const groups = new Map<string, typeof members>();
+    for (const member of members) {
+      if (member.category === page.category) {
+        direct.push(member);
+      } else {
+        const groupName = member.category.slice(prefix.length).split("/")[0];
+        if (!groups.has(groupName)) groups.set(groupName, []);
+        groups.get(groupName)!.push(member);
+      }
+    }
+
+    const renderGroup = (pages: typeof members) => {
+      const items = pages
+        .slice()
+        .sort((a, b) => a.title.localeCompare(b.title))
+        .map((p) => {
+          const desc = trimDescription(p.description);
+          return `<li><a class="link-page exists" href="/${p.address}">${shortMemberTitle(page.title, p.title)}</a>${desc ? " — " + desc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ""}</li>`;
+        })
+        .join("\n");
+      return `<ul>\n${items}\n</ul>\n`;
+    };
+
+    if (members.length > 0) {
+      listHtml += `<h1>Methods<a class="anchor" href="#methods"><i class="mdi mdi-link-variant"></i></a><a name="methods" class="anchor_offset"></a></h1>\n`;
+      if (direct.length > 0) listHtml += renderGroup(direct);
+      for (const [groupName, groupPages] of [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+        const slug = groupName.toLowerCase().replace(/[^a-z0-9]+/g, "");
+        listHtml += `<h2>${groupName}<a class="anchor" href="#${slug}"><i class="mdi mdi-link-variant"></i></a><a name="${slug}" class="anchor_offset"></a></h2>\n`;
+        listHtml += renderGroup(groupPages);
+      }
+    }
+  } catch (e: any) {
+    console.warn("autogen methods expansion failed:", e?.message ?? e);
+    return html;
+  }
+
+  return html.split(AUTOGEN_PLACEHOLDER).join(listHtml);
 }
 
 /**

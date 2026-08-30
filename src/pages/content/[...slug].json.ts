@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { getCustomPage } from "../../lib/db.js";
-import { customPageToContentJson, jsonResponse } from "../../lib/custom_pages.js";
+import { customPageToContentJson, expandAutoMethods, jsonResponse } from "../../lib/custom_pages.js";
 
 /**
  * Fallback content endpoint for custom pages.
@@ -22,7 +22,10 @@ export const GET: APIRoute = async ({ params }) => {
 
   try {
     const page = await getCustomPage(address);
-    if (page) return jsonResponse(customPageToContentJson(page));
+    if (page) {
+      page.html = await expandAutoMethods(page, page.html);
+      return jsonResponse(customPageToContentJson(page));
+    }
   } catch (e: any) {
     console.warn("custom page lookup failed:", e?.message ?? e);
   }

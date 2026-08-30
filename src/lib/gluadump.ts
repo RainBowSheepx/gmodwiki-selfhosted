@@ -43,6 +43,7 @@ export interface GluaDump {
     CLASSES: Record<string, DumpEntry>;
     LIBRARIES: Record<string, DumpEntry>;
     HOOKS: Record<string, DumpEntry>;
+    PANELS: Record<string, DumpEntry & { PARENT?: string }>;
   };
 }
 
@@ -232,18 +233,38 @@ export async function buildGluaDump(origin: string): Promise<GluaDump> {
   const pages = await listCustomPagesWithMarkup();
   const version = await dumpVersion();
 
-  const wiki: GluaDump["wiki"] = { GLOBALS: {}, CLASSES: {}, LIBRARIES: {}, HOOKS: {} };
+  const wiki: GluaDump["wiki"] = { GLOBALS: {}, CLASSES: {}, LIBRARIES: {}, HOOKS: {}, PANELS: {} };
   const classPages = new Map<string, { address: string; description: string }>();
 
   // First pass: remember non-function pages so classes/libraries can get
   // descriptions and links from their own pages (e.g. /Trolleybus, /Systems/TISU,
   // /Trolleybus_System.ContactNetwork). Indexed by full address and leaf name.
+  // Pages with a <panel> block additionally declare a GUI element.
   for (const page of pages) {
     if (!/<function\b/i.test(page.markup)) {
       const info = { address: page.address, description: page.description };
       classPages.set(page.address.toLowerCase(), info);
       const leaf = page.address.split("/").pop() ?? page.address;
       if (!classPages.has(leaf.toLowerCase())) classPages.set(leaf.toLowerCase(), info);
+    }
+
+    const panelMatch = page.markup.match(/<panel\b([^>]*)>([\s\S]*?)<\/panel>/i);
+    if (panelMatch) {
+      const attrs = parseAttrs(panelMatch[1]);
+      const inner = panelMatch[2];
+      const name = (attrs.name ?? page.address.split("/").pop() ?? page.address).trim();
+      const parent = firstTag(inner, "parent")?.inner.trim();
+      const descTag = firstTag(inner, "description");
+      const realms = parseRealms(firstTag(inner, "realm")?.inner ?? "Client");
+
+      wiki.PANELS[name] = {
+        SEARCH: name,
+        LINK: `${origin}/${page.address}`,
+        ...realms,
+        ...(parent ? { PARENT: parent } : {}),
+        DESCRIPTION: descTag ? toMarkdown(descTag.inner.trim(), origin) : page.description,
+        MEMBERS: {},
+      };
     }
   }
 
@@ -277,7 +298,22 @@ export async function buildGluaDump(origin: string): Promise<GluaDump> {
         } as any;
       }
       wiki.HOOKS[HOOK_FAMILY].MEMBERS![name] = entry;
-    } else if (type === "classfunc" || type === "panelfunc") {
+    } else if (type === "panelfunc") {
+      if (!parent) continue;
+      // Panel methods live in the PANELS bucket so vgui.Create and panel
+      // method resolution in the editor plugin can see them
+      if (!wiki.PANELS[parent]) {
+        const info = classPages.get(parent.toLowerCase());
+        wiki.PANELS[parent] = {
+          SEARCH: parent,
+          LINK: `${origin}/${info?.address ?? parent}`,
+          CLIENT: true,
+          ...(info?.description ? { DESCRIPTION: info.description } : {}),
+          MEMBERS: {},
+        };
+      }
+      wiki.PANELS[parent].MEMBERS![name] = entry;
+    } else if (type === "classfunc") {
       if (!parent) continue;
       if (!wiki.CLASSES[parent]) {
         const info = classPages.get(parent.toLowerCase());

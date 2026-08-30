@@ -357,9 +357,7 @@ ${sysDesc}
 
 Get the instance from a bus with <page text="Trolleybus:GetSystem">Trolleybus:GetSystem</page>(\`"${sysName}"\`). Every system also inherits the base methods \`SetNWVar\`/\`GetNWVar\`/\`ClearNWVars\`/\`Unload\` — see the <page text="systems guide">Trolleybus_System_Systems</page>.
 
-## Methods
-
-${methodLinks.join("\n")}`,
+<methods/>`,
   });
 }
 
@@ -502,9 +500,7 @@ for (const [cls, info] of Object.entries(E)) {
 
 ${info.desc}
 
-## Methods
-
-${links.join("\n")}`,
+<methods/>`,
   });
 }
 

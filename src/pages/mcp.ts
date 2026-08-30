@@ -6,6 +6,7 @@ import { registerTools, SERVER_INSTRUCTIONS } from "../../semantic/core/tools.js
 import { pageToContent } from "../../semantic/core/page.js";
 import { searchWiki } from "../lib/search.js";
 import { getCustomPage } from "../lib/db.js";
+import { expandAutoMethods } from "../lib/custom_pages.js";
 
 /**
  * Self-hosted MCP endpoint (streamable HTTP, stateless): connect AI agents to
@@ -24,7 +25,10 @@ function buildServer(origin: string): McpServer {
     // Custom pages first, straight from the database (clean HTML without UI chrome)
     try {
       const custom = await getCustomPage(address);
-      if (custom) return { title: custom.title, content: pageToContent(custom.html) };
+      if (custom) {
+        const html = await expandAutoMethods(custom, custom.html);
+        return { title: custom.title, content: pageToContent(html) };
+      }
     } catch {
       // database missing is fine — official pages still work
     }

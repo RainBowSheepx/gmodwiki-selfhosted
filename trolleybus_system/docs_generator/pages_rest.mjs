@@ -18,7 +18,9 @@ Objects come in two classes:
 * **Contacts** (class 0) — wire objects the trolley poles slide along
 * **SuspensionAndOther** (class 1) — suspensions, pillars and decorative objects
 
-The current network voltage is available with <page>Trolleybus_System.ContactNetwork.GetVoltage</page>; per-wire voltage with <page>Trolleybus_System.ContactNetwork.GetContactWireVoltage</page>.`,
+The current network voltage is available with <page>Trolleybus_System.ContactNetwork.GetVoltage</page>; per-wire voltage with <page>Trolleybus_System.ContactNetwork.GetContactWireVoltage</page>.
+
+<methods/>`,
 });
 
 restPages.push(lib("CreateContact", "Shared",
@@ -136,7 +138,9 @@ restPages.push({
 * \`Trolleybus_System.Routes.Routes\` — table of routes (directions, stop sequences, custom names)
 * \`Trolleybus_System.Routes.Stops\` — table of stops; serverside each stop spawns a \`trolleybus_stop\` entity
 
-Route names shown on nameplates come from <page>Trolleybus_System.Routes.GetRouteName</page>, <page>Trolleybus_System.Routes.GetRouteStart</page> and <page>Trolleybus_System.Routes.GetRouteEnd</page>.`,
+Route names shown on nameplates come from <page>Trolleybus_System.Routes.GetRouteName</page>, <page>Trolleybus_System.Routes.GetRouteStart</page> and <page>Trolleybus_System.Routes.GetRouteEnd</page>.
+
+<methods/>`,
 });
 
 restPages.push(lib("GetRouteName", "Client",
@@ -175,7 +179,9 @@ restPages.push({
   category: NS.category,
   markup: `A lightweight networked-variables system used instead of the engine NW vars: values (string, number, bool, Vector, Angle, nil) are attached to entities by string name and efficiently synced to clients, including full state for newly connected players.
 
-Trolleybuses wrap it with <page>Trolleybus:SetNWVar</page> / <page>Trolleybus:GetNWVar</page>; "helper" variables live on invisible \`trolleybus_networkhelper\` entities addressed by a string index.`,
+Trolleybuses wrap it with <page>Trolleybus:SetNWVar</page> / <page>Trolleybus:GetNWVar</page>; "helper" variables live on invisible \`trolleybus_networkhelper\` entities addressed by a string index.
+
+<methods/>`,
 });
 
 restPages.push(lib("SetNWVar", "Server",
@@ -214,7 +220,9 @@ restPages.push({
   address: "Trolleybus_System.DeviceInputModule",
   title: "Trolleybus_System.DeviceInputModule",
   category: DIM.category,
-  markup: `Support for external input devices (steering wheels, joysticks, button boxes) through the binary \`joystick\` module (\`lua/bin\`). When the module is available, external steer/pedals/buttons can drive a trolleybus (see the \`UseExternalSteer\`/\`UseExternalPedals\`/\`UseExternalButtons\` settings and \`Trolleybus_System.ExternalButtons\` flags).`,
+  markup: `Support for external input devices (steering wheels, joysticks, button boxes) through the binary \`joystick\` module (\`lua/bin\`). When the module is available, external steer/pedals/buttons can drive a trolleybus (see the \`UseExternalSteer\`/\`UseExternalPedals\`/\`UseExternalButtons\` settings and \`Trolleybus_System.ExternalButtons\` flags).
+
+<methods/>`,
 });
 
 restPages.push(lib("LoadModule", "Client",
@@ -262,7 +270,9 @@ Entities with \`ENT.IsTrolleybus = true\` are recognized by the addon; trailers 
 
 The base class defines many DT variables with the usual Get/Set accessors, including: \`SteerAngle\`, \`MoveSpeed\`, \`StartPedal\`, \`BrakePedal\`, \`PowerFromCN\`, \`HandbrakeActive\`, \`EmergencySignal\`, \`TurnSignal\`, \`RouteNum\`, \`BortNumber\`, \`ReverseState\`, \`DriverSeat\`, \`Driver\`, \`Trailer\`, \`Trolleybus\`, \`PoleState/PoleContact/PoleMoveAng (Left/Right)\`, light levels (\`HeadLights\`, \`CabineLight\`, \`InteriorLight\`, \`ScheduleLight\`...), \`PassCount\`, \`InformatorState/ID/PlayLine\`.
 
-Changing a DT variable fires the <page>TrolleybusSystem_Trolleybus_DTVarChanged</page> event.`,
+Changing a DT variable fires the <page>TrolleybusSystem_Trolleybus_DTVarChanged</page> event.
+
+<methods/>`,
 });
 
 restPages.push(method("DoorIsOpened", "Shared",
@@ -499,7 +509,9 @@ end)
 
 Change events built with <page>Trolleybus_System.RunChangeEvent</page> get a \`Changed\` suffix, receive the **new** value first and only fire when the value actually changed: <page text="Trolleybus_DTVarChanged">TrolleybusSystem_Trolleybus_DTVarChanged</page>, <page text="Trolleybus_PoleStateChanged">TrolleybusSystem_Trolleybus_PoleStateChanged</page>, <page text="Trolleybus_PoleContactChanged">TrolleybusSystem_Trolleybus_PoleContactChanged</page>, <page text="Trolleybus_PoleContactWireChanged">TrolleybusSystem_Trolleybus_PoleContactWireChanged</page>, <page text="Trolleybus_ButtonChanged">TrolleybusSystem_Trolleybus_ButtonChanged</page>, <page text="Trolleybus_MultiButtonChanged">TrolleybusSystem_Trolleybus_MultiButtonChanged</page>, <page text="Trolleybus_DoorStateChanged">TrolleybusSystem_Trolleybus_DoorStateChanged</page>, <page text="Trolleybus_ReverseChanged">TrolleybusSystem_Trolleybus_ReverseChanged</page>, <page text="Trolleybus_RenderClientEntsChanged">TrolleybusSystem_Trolleybus_RenderClientEntsChanged</page>, <page text="TrafficLight_StateChanged">TrolleybusSystem_TrafficLight_StateChanged</page>, <page text="ContactNetwork_LoadedStateChanged">TrolleybusSystem_ContactNetwork_LoadedStateChanged</page>.
 
-There is also one plainly named hook: <page>Trolleybus_System.PostInit</page>, fired once after the addon finishes loading.`,
+There is also one plainly named hook: <page>Trolleybus_System.PostInit</page>, fired once after the addon finishes loading.
+
+<methods/>`,
 });
 
 restPages.push(hookPage("AllowEditingDefaultMaps", "Shared",
@@ -687,7 +699,9 @@ The addon ships five toolgun tools (superadmin-only by default, see <page>Trolle
 
 Traffic tracks, informators and traffic lights are loaded/saved server-side with the corresponding Save/Load functions (\`SaveTrafficTracks\`, \`LoadTrafficTracks\`, \`SaveTrafficLights\`, \`LoadTrafficLights\`, \`SaveInformators\`, \`LoadInformators\`).
 
-<note>ULX integration: when ULX is installed, the addon registers additional admin commands from \`trolleybus_system/commands.lua\`.</note>`,
+<note>ULX integration: when ULX is installed, the addon registers additional admin commands from \`trolleybus_system/commands.lua\`.</note>
+
+<methods/>`,
 });
 
 restPages.push({

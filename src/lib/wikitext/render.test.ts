@@ -136,6 +136,25 @@ describe("renderWikitext", () => {
     expect(html).toContain(`<p><strong>Default:</strong> <code>1</code></p>`);
   });
 
+  it("renders the methods placeholder for serve-time expansion", () => {
+    const { html } = renderWikitext("# My Class\n\nIntro.\n\n<methods/>", ctx);
+    expect(html).toContain(`<div class="autogen-methods"></div>`);
+  });
+
+  it("renders panel blocks with parent and realm", () => {
+    const markup = `<panel>
+<parent>DPanel</parent>
+<description>A themed panel.</description>
+<realm>Client</realm>
+</panel>`;
+    const { html, tags } = renderWikitext(markup, ctx);
+    expect(html).toContain(`<div class="type panel">`);
+    expect(html).toContain("A themed panel.");
+    expect(html).toContain(`href="/DPanel"`);
+    expect(tags.split(" ")).toContain("panel");
+    expect(tags.split(" ")).toContain("realm-client");
+  });
+
   it("escapes raw HTML in markup", () => {
     const { html } = renderWikitext(`Hello <script>alert(1)</script> world`, ctx);
     expect(html).not.toContain("<script>");
