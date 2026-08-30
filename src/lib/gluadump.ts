@@ -49,7 +49,7 @@ export interface GluaDump {
 
 /* ------------- minimal wikitext parsing (same grammar as the renderer) ------------- */
 
-function parseAttrs(attrString: string): Record<string, string> {
+export function parseAttrs(attrString: string): Record<string, string> {
   const attrs: Record<string, string> = {};
   const re = /([a-zA-Z_][\w-]*)\s*=\s*"([^"]*)"/g;
   let m: RegExpExecArray | null;
@@ -57,13 +57,13 @@ function parseAttrs(attrString: string): Record<string, string> {
   return attrs;
 }
 
-function firstTag(text: string, tag: string): { attrs: Record<string, string>; inner: string } | null {
+export function firstTag(text: string, tag: string): { attrs: Record<string, string>; inner: string } | null {
   const re = new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)</${tag}>`, "i");
   const m = text.match(re);
   return m ? { attrs: parseAttrs(m[1]), inner: m[2] } : null;
 }
 
-function parseArgLike(inner: string, tag: string): { name: string; type: string; default?: string; desc: string }[] {
+export function parseArgLike(inner: string, tag: string): { name: string; type: string; default?: string; desc: string }[] {
   const out: { name: string; type: string; default?: string; desc: string }[] = [];
   const re = new RegExp(`<${tag}\\b([^>]*?)(?:/>|>([\\s\\S]*?)</${tag}>)`, "gi");
   let m: RegExpExecArray | null;

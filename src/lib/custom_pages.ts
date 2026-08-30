@@ -5,7 +5,8 @@
 
 import { renderWikitext } from "./wikitext/render.js";
 import { buildPageExists, getOfficialPageSet } from "./pages.js";
-import { listCustomPages } from "./db.js";
+import { listCustomPagesWithMarkup } from "./db.js";
+import { firstTag, parseArgLike, parseAttrs } from "./gluadump.js";
 import type { CustomPage } from "./db.js";
 
 /** Route prefixes that can never be page addresses. */
@@ -73,17 +74,68 @@ function shortMemberTitle(pageTitle: string, memberTitle: string): string {
   return memberTitle;
 }
 
-function trimDescription(text: string, max = 160): string {
-  const clean = (text ?? "").replace(/\s+/g, " ").trim();
-  if (clean.length <= max) return clean;
-  const cut = clean.lastIndexOf(" ", max - 3);
-  return clean.slice(0, cut > 40 ? cut : max - 3) + "...";
+function escapeText(text: string): string {
+  return (text ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /**
- * Replaces the `<methods/>` placeholder with a generated list of every page
- * living in this page's category and its subcategories — so class pages don't
- * have to maintain their method lists by hand (official-wiki style).
+ * One entry of the auto-generated methods list, matching the official wiki's
+ * class-page markup: `.member_line` with a `.syntax` signature and a
+ * `.summary` description (see e.g. wiki.facepunch.com/gmod/DPanel).
+ */
+function memberLine(
+  member: { address: string; title: string; markup: string; description: string },
+  pageTitle: string,
+): string {
+  const fnMatch = member.markup.match(/<function\b([^>]*)>([\s\S]*?)<\/function>/i);
+  let syntax: string;
+  let deprecated = false;
+
+  if (fnMatch) {
+    const attrs = parseAttrs(fnMatch[1]);
+    const inner = fnMatch[2];
+    const name = attrs.name ?? shortMemberTitle(pageTitle, member.title);
+    const parent = attrs.parent ?? "";
+    const type = (attrs.type ?? "libraryfunc").toLowerCase();
+    deprecated = /<deprecated\b/i.test(inner);
+
+    const rets = parseArgLike(firstTag(inner, "rets")?.inner ?? "", "ret");
+    const args = parseArgLike(firstTag(inner, "args")?.inner ?? "", "arg");
+
+    syntax = "";
+    if (rets.length) {
+      syntax += rets.map((r) => `<a class="link-page exists" href="/${escapeText(r.type)}">${escapeText(r.type)}</a>`).join(", ") + "  ";
+    }
+    if (parent && parent !== "Global" && type !== "hook") {
+      const separator = type === "classfunc" || type === "panelfunc" ? ":" : ".";
+      syntax += escapeText(parent) + separator;
+    }
+    syntax += `<a class="subject" href="/${member.address}">${escapeText(name)}</a>`;
+    if (args.length) {
+      const argParts = args.map((a) => {
+        if (a.type === "vararg") return "...";
+        let part = `<a class="link-page exists" href="/${escapeText(a.type)}">${escapeText(a.type)}</a> ${escapeText(a.name)}`;
+        if (a.default !== undefined) part += ` = ${escapeText(a.default)}`;
+        return part;
+      });
+      syntax += `( ${argParts.join(",  ")} )`;
+    } else {
+      syntax += "()";
+    }
+  } else {
+    // Non-function member (e.g. a guide page in the category)
+    syntax = `<a class="subject" href="/${member.address}">${escapeText(shortMemberTitle(pageTitle, member.title))}</a>`;
+  }
+
+  const summary = escapeText((member.description ?? "").trim());
+  return `<div class="member_line"><div class="syntax${deprecated ? " depr" : ""}">${syntax}</div><div class="summary">${summary}</div></div>`;
+}
+
+/**
+ * Replaces the `<methods/>` placeholder with a generated Methods section for
+ * every page living in this page's category and its subcategories — so class
+ * pages don't maintain method lists by hand. Output mirrors the official
+ * wiki's class pages (`.members`/`.member_line`/`.syntax`/`.summary`).
  *
  * Runs at SERVE time, so the list always reflects the current page set.
  */
@@ -92,14 +144,14 @@ export async function expandAutoMethods(page: Pick<CustomPage, "address" | "titl
 
   let listHtml = "";
   try {
-    const all = await listCustomPages();
+    const all = await listCustomPagesWithMarkup();
     const prefix = page.category + "/";
     const members = all.filter(
       (p) => p.address !== page.address && (p.category === page.category || p.category.startsWith(prefix)),
     );
 
-    // Group: pages directly in the category first, then one group per
-    // immediate subcategory (deeper levels are flattened into their group).
+    // Pages directly in the category first, then one group per immediate
+    // subcategory (deeper levels are flattened into their group).
     const direct: typeof members = [];
     const groups = new Map<string, typeof members>();
     for (const member of members) {
@@ -112,26 +164,24 @@ export async function expandAutoMethods(page: Pick<CustomPage, "address" | "titl
       }
     }
 
-    const renderGroup = (pages: typeof members) => {
-      const items = pages
+    const renderGroup = (pages: typeof members) =>
+      `<div class="section">` +
+      pages
         .slice()
         .sort((a, b) => a.title.localeCompare(b.title))
-        .map((p) => {
-          const desc = trimDescription(p.description);
-          return `<li><a class="link-page exists" href="/${p.address}">${shortMemberTitle(page.title, p.title)}</a>${desc ? " — " + desc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ""}</li>`;
-        })
-        .join("\n");
-      return `<ul>\n${items}\n</ul>\n`;
-    };
+        .map((p) => memberLine(p, page.title))
+        .join("") +
+      `</div>`;
 
     if (members.length > 0) {
-      listHtml += `<h1>Methods<a class="anchor" href="#methods"><i class="mdi mdi-link-variant"></i></a><a name="methods" class="anchor_offset"></a></h1>\n`;
+      listHtml += `<div class="type">\n<div class="members"><h1>Methods<a class="anchor" href="#methods"><i class="mdi mdi-link-variant"></i></a><a name="methods" class="anchor_offset"></a></h1>\n`;
       if (direct.length > 0) listHtml += renderGroup(direct);
       for (const [groupName, groupPages] of [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
         const slug = groupName.toLowerCase().replace(/[^a-z0-9]+/g, "");
-        listHtml += `<h2>${groupName}<a class="anchor" href="#${slug}"><i class="mdi mdi-link-variant"></i></a><a name="${slug}" class="anchor_offset"></a></h2>\n`;
+        listHtml += `<h2>${escapeText(groupName)}<a class="anchor" href="#${slug}"><i class="mdi mdi-link-variant"></i></a><a name="${slug}" class="anchor_offset"></a></h2>\n`;
         listHtml += renderGroup(groupPages);
       }
+      listHtml += `</div></div>`;
     }
   } catch (e: any) {
     console.warn("autogen methods expansion failed:", e?.message ?? e);
