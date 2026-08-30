@@ -27,6 +27,11 @@ class Navigate {
     if (address === "" || address === "/" || address === "//")
       address = "/index";
 
+    // The custom-page editor opens through the same content swap (its logic
+    // is wired by InitCustomEditor afterwards) — no reload, sidebar untouched
+    if (address.split("?")[0].toLowerCase() === "/custom/edit")
+      return this.ToEditor(address, push);
+
     var newData;
     this.pageTitle2.innerText = "Loading..";
     this.pageContent.parentElement.classList.add("loading");
@@ -80,6 +85,39 @@ class Navigate {
             }
           });
         });
+      });
+
+    return false;
+  }
+
+  static ToEditor(address, push = true) {
+    var query = address.indexOf("?") >= 0 ? address.substring(address.indexOf("?")) : "";
+
+    this.pageTitle2.innerText = "Loading..";
+    this.pageContent.parentElement.classList.add("loading");
+
+    fetch("/content/custom/edit.json" + query, { method: "GET" })
+      .then((r) => r.json())
+      .then((json) => {
+        if (push) history.pushState({}, "", address);
+
+        requestAnimationFrame(() => {
+          window.scrollTo(0, 0);
+          this.UpdatePage(json);
+          this.pageContent.parentElement.classList.remove("loading");
+
+          requestAnimationFrame(() => {
+            InitCustomEditor();
+            this.UpdateSidebar();
+            if (window.innerWidth <= 780) {
+              document.getElementById("sidebar").classList.remove("visible");
+            }
+          });
+        });
+      })
+      .catch(() => {
+        // endpoint unavailable — fall back to the full page load
+        window.location.href = address;
       });
 
     return false;
@@ -160,14 +198,34 @@ class Navigate {
 
     var thisHost = window.location.host;
     // Links that must never go through the JSON content loader: anchors,
-    // special pages, anything with a query string, and app pages like the
-    // custom-page editor or the API.
-    var skipNav = (val) =>
-      val.indexOf("#") >= 0 ||
-      val.indexOf("~") >= 0 ||
-      val.indexOf("?") >= 0 ||
-      val.indexOf("/custom") === 0 ||
-      val.indexOf("/api/") === 0;
+    // special pages, anything with a query string, the API, and app pages
+    // like /custom. The editor (/custom/edit) is the exception — ToPage
+    // routes it through the client-side content swap.
+    var skipNav = (val) => {
+      if (val.indexOf("/custom/edit") === 0) return false;
+      return (
+        val.indexOf("#") >= 0 ||
+        val.indexOf("~") >= 0 ||
+        val.indexOf("?") >= 0 ||
+        val.indexOf("/custom") === 0 ||
+        val.indexOf("/api/") === 0
+      );
+    };
+
+    // The header Live/Edit button: "Edit" (custom pages) opens the editor
+    // in-place; "Live" (official pages) keeps its external link behaviour.
+    if (this.liveButton) {
+      this.liveButton.addEventListener("click", (e) => {
+        var href = this.liveButton.getAttribute("href") || "";
+        if (
+          href.indexOf("/custom/edit") === 0 &&
+          !(e.ctrlKey || e.shiftKey || e.altKey)
+        ) {
+          e.preventDefault();
+          Navigate.ToPage(href);
+        }
+      });
+    }
 
     this.sideBar.addEventListener("click", (e) => {
       var a = e.target;
@@ -771,6 +829,7 @@ function InitCustomSidebar() {
       if (!contents || document.getElementById("custom-wiki-section")) return;
       var header = document.createElement("div");
       header.className = "sectionheader";
+      header.id = "custom-wiki-header";
       header.textContent = "Custom Wiki";
       var section = document.createElement("div");
       section.className = "section";
@@ -796,11 +855,124 @@ function InitCustomSidebar() {
     });
 }
 
+// Rebuilds the Custom Wiki sidebar section from the API — called after a page
+// is saved, so a new page/category shows up without any reload.
+function RefreshCustomSidebar() {
+  var header = document.getElementById("custom-wiki-header");
+  var section = document.getElementById("custom-wiki-section");
+  if (header) header.remove();
+  if (section) section.remove();
+  InitCustomSidebar();
+}
+
+// Wires up the custom-page editor (preview, save, delete). Runs on direct
+// loads of /custom/edit and after Navigate.ToEditor swaps the editor into
+// #pagecontent (innerHTML-injected scripts never execute, so the logic lives
+// here). No-op on pages without the editor.
+function InitCustomEditor() {
+  var addressInput = document.getElementById("page-address");
+  var markupInput = document.getElementById("page-markup");
+  if (!addressInput || !markupInput) return;
+
+  var titleInput = document.getElementById("page-title");
+  var categoryInput = document.getElementById("page-category");
+  var preview = document.getElementById("preview");
+  var status = document.getElementById("editor-status");
+  var isEdit = addressInput.hasAttribute("readonly");
+
+  var previewTimer = null;
+
+  async function updatePreview() {
+    try {
+      const res = await fetch("/api/custom/preview", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          markup: markupInput.value,
+          address: addressInput.value.trim(),
+          title: titleInput.value,
+          category: categoryInput.value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      preview.innerHTML = data.html || "<i>Nothing to preview yet.</i>";
+    } catch (err) {
+      preview.innerHTML = "<i>Preview failed: " + err.message + "</i>";
+    }
+  }
+
+  markupInput.addEventListener("input", () => {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(updatePreview, 600);
+  });
+  updatePreview();
+
+  document.getElementById("save-button").addEventListener("click", async () => {
+    const address = addressInput.value.trim();
+    if (!address) {
+      status.textContent = "Address is required.";
+      return;
+    }
+
+    status.textContent = "Saving...";
+    const body = JSON.stringify({
+      address,
+      title: titleInput.value,
+      category: categoryInput.value,
+      markup: markupInput.value,
+    });
+
+    try {
+      const res = await fetch(
+        isEdit
+          ? "/api/custom/pages/" + encodeURIComponent(address).replaceAll("%2F", "/")
+          : "/api/custom/pages",
+        {
+          method: isEdit ? "PUT" : "POST",
+          headers: { "content-type": "application/json" },
+          body,
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      status.textContent = "Saved!";
+      // swap straight to the saved page — no reload, the sidebar keeps its
+      // state — and refresh the Custom Wiki section (page may be new)
+      RefreshCustomSidebar();
+      Navigate.ToPage("/" + data.page.address);
+    } catch (err) {
+      status.textContent = "Error: " + err.message;
+    }
+  });
+
+  const deleteButton = document.getElementById("delete-button");
+  if (deleteButton) {
+    deleteButton.addEventListener("click", async () => {
+      if (!confirm("Delete this custom page? This cannot be undone.")) return;
+      status.textContent = "Deleting...";
+      try {
+        const address = addressInput.value.trim();
+        const res = await fetch(
+          "/api/custom/pages/" + encodeURIComponent(address).replaceAll("%2F", "/"),
+          { method: "DELETE" },
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        window.location.href = "/custom";
+      } catch (err) {
+        status.textContent = "Error: " + err.message;
+      }
+    });
+  }
+}
+
 // The main init chain runs inside requestAnimationFrame after `load`, which
-// browsers suspend in hidden tabs — build the custom sidebar and set up the
-// Live/Edit button independently so they are there as soon as the DOM is ready.
+// browsers suspend in hidden tabs — build the custom sidebar, the editor and
+// the Live/Edit button independently so they work as soon as the DOM is ready.
 function InitCustomExtras() {
   InitCustomSidebar();
+  InitCustomEditor();
   UpdateLiveButton();
 }
 
