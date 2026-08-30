@@ -2,8 +2,9 @@
 // sources into signatures.json for the docs generator.
 import { readFileSync, readdirSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
+import { resolveAddonRoot } from "./addon_sources.mjs";
 
-const ROOT = "F:/Projects/wiki/gmodwiki/trolleybus_system/Garry-s-Mod-Trolleybus-System-master/lua";
+const ROOT = join(await resolveAddonRoot(), "lua");
 
 const FILE_REALM = { "init.lua": "Server", "cl_init.lua": "Client", "shared.lua": "Shared" };
 

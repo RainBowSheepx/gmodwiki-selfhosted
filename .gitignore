@@ -1,4 +1,4 @@
-﻿# build output
+# build output
 dist/
 
 # generated types
@@ -41,6 +41,7 @@ docs/
 .claude/
 .superpowers/
 
-
+# Trolleybus System addon sources (copyrighted; auto-downloaded by the docs generator)
 trolleybus_system/Garry-s-Mod-Trolleybus-System-master/
+trolleybus_system/Garry-s-Mod-Trolleybus-System-master.tmp/
 gmodwiki.7z

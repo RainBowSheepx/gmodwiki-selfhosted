@@ -3,8 +3,9 @@
 // which renders as the "View Source" button.
 import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
+import { resolveAddonRoot } from "./addon_sources.mjs";
 
-const ROOT = "F:/Projects/wiki/gmodwiki/trolleybus_system/Garry-s-Mod-Trolleybus-System-master";
+const ROOT = await resolveAddonRoot();
 
 // display name used as the function parent in the docs -> systems/ dir
 const SYSTEM_DIRS = {

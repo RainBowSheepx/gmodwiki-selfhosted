@@ -5,7 +5,8 @@ import { systemsPages } from "./pages_systems.mjs";
 import { methodPages } from "./pages_methods.mjs";
 import { resolveSource } from "./sourcemap.mjs";
 
-const BASE = "http://127.0.0.1:4321";
+// Wiki to publish to; override with WIKI_BASE=https://my-wiki.example
+const BASE = (process.env.WIKI_BASE ?? "http://127.0.0.1:4321").replace(/\/+$/, "");
 // later files override earlier versions of the same address (POST 409 -> PUT)
 const pages = [...corePages, ...restPages, ...systemsPages, ...methodPages];
 

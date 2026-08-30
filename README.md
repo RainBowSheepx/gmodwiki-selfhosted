@@ -134,14 +134,21 @@ GMODWIKI_DB_PASSWORD=change-me
 
 ### Генератор документации Trolleybus System
 
-`trolleybus_system/docs_generator/` — источник правды для всех 547 страниц:
+`trolleybus_system/docs_generator/` — источник правды для всех страниц документации:
 
 ```sh
 node trolleybus_system/docs_generator/run.mjs
 ```
 
 Идемпотентно публикует страницы через API вики (создаёт/обновляет). Сигнатуры
-методов извлекаются из исходников аддона (`extract_sigs.mjs` → `signatures.json`).
+методов извлекаются из исходников аддона (`extract_sigs.mjs` → `signatures.json`),
+ссылки View Source (файл + строки) строятся по ним же (`sourcemap.mjs`).
+
+Исходники аддона генератор находит сам: переменная окружения `TROLLEYBUS_SRC`
+(путь к распакованному аддону с папкой `lua/` внутри) → локальная копия в
+`trolleybus_system/Garry-s-Mod-Trolleybus-System-master` → иначе архив master
+скачивается с GitHub и распаковывается туда автоматически. Целевая вики задаётся
+переменной `WIKI_BASE` (по умолчанию `http://127.0.0.1:4321`).
 
 ---
 
