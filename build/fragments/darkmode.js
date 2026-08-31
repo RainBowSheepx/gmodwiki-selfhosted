@@ -36,6 +36,30 @@ const style = `
     #pagecontent .page.diff h1 {
       color: #eee !important;
     }
+    /* Revision diff: the official light-theme colors (dark text on bright
+       translucent backgrounds) are unreadable on a dark page - use muted
+       backgrounds with light text instead */
+    #pagecontent .page.diff .textdiff {
+      color: #9a9a9a !important;
+    }
+    #pagecontent .page.diff .textdiff .char.deleted,
+    #pagecontent .page.diff .textdiff .line.deleted {
+      background-color: rgba(229, 83, 75, 0.4) !important;
+      color: #ffb3ad !important;
+    }
+    #pagecontent .page.diff .textdiff .modified.deleted {
+      background-color: rgba(229, 83, 75, 0.15) !important;
+      color: #ff9d95 !important;
+    }
+    #pagecontent .page.diff .textdiff .char.inserted,
+    #pagecontent .page.diff .textdiff .line.inserted {
+      background-color: rgba(70, 149, 74, 0.45) !important;
+      color: #aff5b4 !important;
+    }
+    #pagecontent .page.diff .textdiff .modified.inserted {
+      background-color: rgba(70, 149, 74, 0.18) !important;
+      color: #7ee787 !important;
+    }
     .markdown {
       color: #999;
     }
