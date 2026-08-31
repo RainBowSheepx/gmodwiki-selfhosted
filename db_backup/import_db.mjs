@@ -28,6 +28,17 @@ CREATE TABLE IF NOT EXISTS custom_pages (
 );
 CREATE INDEX IF NOT EXISTS custom_pages_lower_address ON custom_pages (lower(address));
 CREATE INDEX IF NOT EXISTS custom_pages_category ON custom_pages (category);
+CREATE TABLE IF NOT EXISTS custom_page_revisions (
+    id             SERIAL PRIMARY KEY,
+    address        TEXT NOT NULL,
+    title          TEXT NOT NULL,
+    category       TEXT NOT NULL DEFAULT 'Custom',
+    markup         TEXT NOT NULL,
+    commit_message TEXT NOT NULL DEFAULT 'Minor Change',
+    author         TEXT NOT NULL DEFAULT 'Anon',
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS custom_page_revisions_lower_address ON custom_page_revisions (lower(address), id DESC);
 `;
 
 const client = new pg.Client({ connectionString: url });
@@ -56,5 +67,24 @@ for (const p of data.pages) {
   if (++n % 100 === 0) console.log(`  ${n}/${data.pages.length}`);
 }
 
+// Page history: revision ids are referenced by ~diff:<id> URLs, so they are
+// preserved on import; the sequence is bumped past the highest imported id.
+// Older exports have no `revisions` key — that's fine.
+const revisions = data.revisions ?? [];
+for (const r of revisions) {
+  await client.query(
+    `INSERT INTO custom_page_revisions (id, address, title, category, markup, commit_message, author, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (id) DO NOTHING`,
+    [r.id, r.address, r.title, r.category, r.markup, r.commit_message, r.author, r.created_at],
+  );
+}
+if (revisions.length > 0) {
+  await client.query(
+    `SELECT setval(pg_get_serial_sequence('custom_page_revisions', 'id'),
+                   (SELECT coalesce(max(id), 1) FROM custom_page_revisions))`,
+  );
+}
+
 await client.end();
-console.log(`imported ${data.pages.length} pages, ${data.categories.length} categories`);
+console.log(`imported ${data.pages.length} pages, ${data.categories.length} categories, ${revisions.length} revisions`);

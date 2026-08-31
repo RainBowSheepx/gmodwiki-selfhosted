@@ -13,6 +13,10 @@ const buildConfig = {
 
 const DEFAULT_OPTIONS = {
   includePublic: true,
+  // The scraper already optimizes every image into webp (build/modules/static.ts)
+  // and keeps GIF animations (sharp `animated` input option). Re-encoding webp
+  // here would flatten animated files to their first frame — skip them.
+  exclude: /\.webp$/i,
   svg: {
     multipass: true,
     plugins: [

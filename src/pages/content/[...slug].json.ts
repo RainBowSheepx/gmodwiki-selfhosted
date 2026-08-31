@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { getCustomPage } from "../../lib/db.js";
 import { customPageToContentJson, expandAutoMethods, jsonResponse } from "../../lib/custom_pages.js";
+import { buildDiffPage, buildHistoryPage } from "../../lib/history_pages.js";
 
 /**
  * Fallback content endpoint for custom pages.
@@ -21,6 +22,37 @@ export const GET: APIRoute = async ({ params }) => {
   }
 
   try {
+    // "<address>~history" and "<address>~diff:<revision>" are the page-history
+    // views of custom pages (official-wiki URL scheme)
+    const historyMatch = /^(.+)~history$/i.exec(address);
+    if (historyMatch) {
+      const built = await buildHistoryPage(historyMatch[1]);
+      if (built) {
+        return jsonResponse({
+          title: built.title,
+          description: built.title,
+          tags: "",
+          address,
+          html: built.html,
+          footer: "",
+        });
+      }
+    }
+    const diffMatch = /^(.+)~diff:(\d+)$/i.exec(address);
+    if (diffMatch) {
+      const built = await buildDiffPage(diffMatch[1], parseInt(diffMatch[2], 10));
+      if (built) {
+        return jsonResponse({
+          title: built.title,
+          description: built.title,
+          tags: "",
+          address,
+          html: built.html,
+          footer: "",
+        });
+      }
+    }
+
     const page = await getCustomPage(address);
     if (page) {
       page.html = await expandAutoMethods(page, page.html);

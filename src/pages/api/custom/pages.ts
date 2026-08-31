@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { createCustomPage, getCustomPage, listCustomPages } from "../../../lib/db.js";
+import { addPageRevision, createCustomPage, getCustomPage, listCustomPages } from "../../../lib/db.js";
 import {
   customPageToContentJson,
   errorResponse,
@@ -45,6 +45,8 @@ export const POST: APIRoute = async ({ request, url }) =>
 
     const rendered = await renderCustomMarkup(url.origin, markup);
     const title = String(body.title ?? "").trim() || rendered.title || address;
+    const commitMessage = String(body.commitMessage ?? "").trim().slice(0, 200) || "Created Page";
+    const author = String(body.author ?? "").trim().replace(/\s+/g, " ").slice(0, 60) || "Anon";
 
     const page = await createCustomPage({
       address,
@@ -55,6 +57,8 @@ export const POST: APIRoute = async ({ request, url }) =>
       html: rendered.html,
       description: rendered.description,
     });
+
+    await addPageRevision({ address, title, category, markup, commitMessage, author });
 
     return jsonResponse({ page: { ...page, contentJson: customPageToContentJson(page) } }, 201);
   });

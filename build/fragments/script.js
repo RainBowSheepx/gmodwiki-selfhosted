@@ -188,6 +188,10 @@ class Navigate {
       if (editAddr) address = new URL("/" + editAddr, location.origin).href;
     }
 
+    // Same on a page's history or diff view: highlight the page itself
+    var historyView = /^(.*)~(history|diff:\d+)$/i.exec(location.pathname);
+    if (historyView) address = location.origin + historyView[1];
+
     for (var i = 0; i < links.length; i++) {
       var a = links[i];
 
@@ -239,6 +243,8 @@ class Navigate {
     var skipNav = (val) => {
       var path = val.split(/[?#]/)[0].replace(/\/$/, "");
       if (path === "/custom/edit" || path === "/custom" || path === "/websearch") return false;
+      // page history and revision diffs are regular content-swap pages
+      if (/~(history|diff:\d+)$/i.test(path)) return false;
       // same-page fragments jump natively; cross-page anchors ("/Page#x")
       // go through the content swap and scroll after it
       if (val.charAt(0) === "#") return true;
@@ -704,13 +710,36 @@ function UpdateLiveButton() {
   var marker = document.getElementById("custom-page-marker");
 
   if (marker) {
+    var markerAddress = marker.getAttribute("data-address") || "";
     liveButton.innerHTML = '<i class="mdi mdi-pencil"></i>Edit';
-    liveButton.href = "/custom/edit?address=" + encodeURIComponent(marker.getAttribute("data-address") || "");
+    liveButton.href = "/custom/edit?address=" + encodeURIComponent(markerAddress);
     liveButton.removeAttribute("target");
+
+    // Custom pages also get a History button (opens through the content swap)
+    var historyButton = document.getElementById("history-button");
+    if (!historyButton) {
+      var li = document.createElement("li");
+      li.id = "history-button-li";
+      historyButton = document.createElement("a");
+      historyButton.id = "history-button";
+      historyButton.style.cursor = "pointer";
+      historyButton.onclick = function () {
+        Navigate.ToPage(historyButton.getAttribute("href"));
+        return false;
+      };
+      li.appendChild(historyButton);
+      var liveLi = liveButton.parentElement;
+      liveLi.parentElement.insertBefore(li, liveLi.nextSibling);
+    }
+    historyButton.innerHTML = '<i class="mdi mdi-history"></i>History';
+    historyButton.href = "/" + markerAddress + "~history";
   } else {
     liveButton.innerHTML = '<i class="mdi mdi-history"></i>Live';
     liveButton.href = "https://wiki.facepunch.com/gmod" + window.location.pathname;
     liveButton.target = "_blank";
+
+    var historyLi = document.getElementById("history-button-li");
+    if (historyLi) historyLi.remove();
   }
 }
 
@@ -1008,9 +1037,17 @@ function InitCustomEditor() {
 
   var titleInput = document.getElementById("page-title");
   var categoryInput = document.getElementById("page-category");
+  var commitInput = document.getElementById("page-commit");
+  var authorInput = document.getElementById("page-author");
   var preview = document.getElementById("preview");
   var status = document.getElementById("editor-status");
   var isEdit = addressInput.hasAttribute("readonly");
+
+  // the author name is remembered per browser and pre-filled on later edits
+  try {
+    var savedAuthor = localStorage.getItem("gmodwiki-author");
+    if (savedAuthor) authorInput.value = savedAuthor;
+  } catch (e) {}
 
   var previewTimer = null;
 
@@ -1048,11 +1085,17 @@ function InitCustomEditor() {
     }
 
     status.textContent = "Saving...";
+    const author = authorInput.value.trim() || "Anon";
+    try {
+      localStorage.setItem("gmodwiki-author", author);
+    } catch (e) {}
     const body = JSON.stringify({
       address,
       title: titleInput.value,
       category: categoryInput.value,
       markup: markupInput.value,
+      commitMessage: commitInput.value.trim() || (isEdit ? "Minor Change" : "Created Page"),
+      author,
     });
 
     try {

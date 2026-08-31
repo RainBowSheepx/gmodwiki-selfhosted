@@ -34,6 +34,19 @@ CREATE TABLE IF NOT EXISTS custom_pages (
 
 CREATE INDEX IF NOT EXISTS custom_pages_lower_address ON custom_pages (lower(address));
 CREATE INDEX IF NOT EXISTS custom_pages_category ON custom_pages (category);
+
+CREATE TABLE IF NOT EXISTS custom_page_revisions (
+    id             SERIAL PRIMARY KEY,
+    address        TEXT NOT NULL,
+    title          TEXT NOT NULL,
+    category       TEXT NOT NULL DEFAULT 'Custom',
+    markup         TEXT NOT NULL,
+    commit_message TEXT NOT NULL DEFAULT 'Minor Change',
+    author         TEXT NOT NULL DEFAULT 'Anon',
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS custom_page_revisions_lower_address ON custom_page_revisions (lower(address), id DESC);
 `;
 
 export interface CustomCategory {
@@ -172,6 +185,74 @@ export async function updateCustomPage(
     [address, page.title, page.category, page.tags, page.markup, page.html, page.description],
   );
   return res.rows[0] ?? null;
+}
+
+export interface PageRevision {
+  id: number;
+  address: string;
+  title: string;
+  category: string;
+  markup: string;
+  commit_message: string;
+  author: string;
+  created_at: string;
+}
+
+/** Records one edit in the page history (called after create/update). */
+export async function addPageRevision(rev: {
+  address: string;
+  title: string;
+  category: string;
+  markup: string;
+  commitMessage: string;
+  author: string;
+  createdAt?: string;
+}): Promise<PageRevision> {
+  const pool = await getPool();
+  const res = await pool.query(
+    `INSERT INTO custom_page_revisions (address, title, category, markup, commit_message, author, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, coalesce($7::timestamptz, now()))
+     RETURNING *`,
+    [rev.address, rev.title, rev.category, rev.markup, rev.commitMessage, rev.author, rev.createdAt ?? null],
+  );
+  return res.rows[0];
+}
+
+/** Newest-first history of a page (without the markup bodies). */
+export async function listPageRevisions(address: string): Promise<Omit<PageRevision, "markup">[]> {
+  const pool = await getPool();
+  const res = await pool.query(
+    `SELECT id, address, title, category, commit_message, author, created_at
+     FROM custom_page_revisions WHERE lower(address) = lower($1) ORDER BY id DESC`,
+    [address],
+  );
+  return res.rows;
+}
+
+export async function getPageRevision(id: number): Promise<PageRevision | null> {
+  const pool = await getPool();
+  const res = await pool.query(`SELECT * FROM custom_page_revisions WHERE id = $1`, [id]);
+  return res.rows[0] ?? null;
+}
+
+/** The revision saved right before `id` for the same address (diff base). */
+export async function getPreviousRevision(address: string, id: number): Promise<PageRevision | null> {
+  const pool = await getPool();
+  const res = await pool.query(
+    `SELECT * FROM custom_page_revisions
+     WHERE lower(address) = lower($1) AND id < $2 ORDER BY id DESC LIMIT 1`,
+    [address, id],
+  );
+  return res.rows[0] ?? null;
+}
+
+export async function countPageRevisions(address: string): Promise<number> {
+  const pool = await getPool();
+  const res = await pool.query(
+    `SELECT count(*)::int AS n FROM custom_page_revisions WHERE lower(address) = lower($1)`,
+    [address],
+  );
+  return res.rows[0]?.n ?? 0;
 }
 
 export async function deleteCustomPage(address: string): Promise<boolean> {

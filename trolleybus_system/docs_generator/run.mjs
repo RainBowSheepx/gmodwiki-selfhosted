@@ -7,8 +7,13 @@ import { resolveSource } from "./sourcemap.mjs";
 
 // Wiki to publish to; override with WIKI_BASE=https://my-wiki.example
 const BASE = (process.env.WIKI_BASE ?? "http://127.0.0.1:4321").replace(/\/+$/, "");
-// later files override earlier versions of the same address (POST 409 -> PUT)
-const pages = [...corePages, ...restPages, ...systemsPages, ...methodPages];
+// Later files override earlier versions of the same address. Deduplicate
+// BEFORE publishing (last wins): publishing the intermediate version too
+// would record phantom edits in the page history on every republish.
+const allPages = [...corePages, ...restPages, ...systemsPages, ...methodPages];
+const byAddress = new Map();
+for (const p of allPages) byAddress.set(p.address, p);
+const pages = [...byAddress.values()];
 
 // Every function page whose definition is found in the addon sources gets a
 // <file> tag (the "View Source" button, linking into the github= repo).
@@ -47,7 +52,8 @@ await api("/api/custom/categories", "POST", {
 let created = 0, updated = 0, failed = 0;
 
 for (const p of pages) {
-  const body = { address: p.address, title: p.title, category: p.category, markup: p.markup };
+  // Author for the page history; unchanged republishes record no revisions
+  const body = { address: p.address, title: p.title, category: p.category, markup: p.markup, author: "docs_generator" };
 
   let r = await api("/api/custom/pages", "POST", body);
   if (r.status === 409) {

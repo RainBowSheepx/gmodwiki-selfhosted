@@ -179,6 +179,12 @@ export async function buildEditorPage(
                 ${categories.map((name) => `<option value="${escAttr(name)}"></option>`).join("\n                ")}
             </datalist>
 
+            <label>Commit Message <span class="hint">(what changed — shown in the page history)</span></label>
+            <input type="text" id="page-commit" maxlength="200" value="${isEdit ? "Minor Change" : "Created Page"}" />
+
+            <label>Author <span class="hint">(shown in the page history; remembered in this browser)</span></label>
+            <input type="text" id="page-author" maxlength="60" value="Anon" />
+
             <label>Markup</label>
             <textarea id="page-markup" spellcheck="false">${esc(existing?.markup ?? DEFAULT_MARKUP)}</textarea>
 
