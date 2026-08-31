@@ -46,6 +46,11 @@ const HISTORY_STYLES = `<style>
     line-height: 30px;
     text-align: center;
 }
+/* the mirror's icon set is trimmed to the icons official pages use — this
+   one only appears on history pages (codepoint from the official gmod.css) */
+.mdi-vector-difference::before {
+    content: "\\f055a";
+}
 </style>`;
 
 function pad(n: number): string {
@@ -127,7 +132,7 @@ ${rows}
     </table>`;
 
   const html = `${HISTORY_STYLES}
-<div class="markdown">
+<div class="markdown" data-history-of="${esc(displayAddress)}">
 
     ${body}
 
@@ -142,6 +147,26 @@ ${rows}
 // official DOM; the swap target here is #pagecontent, so the same rules are
 // re-scoped inline.
 const DIFF_STYLES = `<style>
+/* #pagecontent carries .markdown, whose h1/h2 styles (80px top margin,
+   underline, negative-offset colored h2 colliding with it) mangle the diff
+   header — restore the official ".page h1/h2" look */
+#pagecontent .page.diff {
+    padding: 16px 0;
+}
+#pagecontent .page.diff h1 {
+    font-size: 30px;
+    text-transform: uppercase;
+    margin: 0;
+    padding: 0;
+    border-bottom: none;
+    line-height: 1.3;
+}
+#pagecontent .page.diff h2 {
+    position: static;
+    margin: 0 0 8px;
+    color: #0082ff;
+    font-size: 18px;
+}
 #pagecontent .page.diff .textdiff {
     color: #777;
     white-space: pre-wrap;
@@ -288,7 +313,7 @@ export async function buildDiffPage(
   const textdiff = renderTextDiff(prev?.markup ?? "", rev.markup);
 
   const html = `${DIFF_STYLES}
-<div class="page diff">
+<div class="page diff" data-diff-of="${esc(rev.address)}">
 
     <h1>Revision Difference</h1>
     <h2>${esc(rev.address)}#${rev.id}</h2>

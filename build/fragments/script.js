@@ -1,4 +1,4 @@
-var EditDisplay;
+﻿var EditDisplay;
 var Edit;
 var Preview;
 var Decorator;
@@ -37,7 +37,7 @@ class Navigate {
     }
 
     // App pages (the editor, the custom-pages index) open through the same
-    // content swap — no reload, sidebar untouched. Their behaviour is wired
+    // content swap вЂ” no reload, sidebar untouched. Their behaviour is wired
     // by the init hook after injection (innerHTML scripts never execute).
     var path = address.split("?")[0].toLowerCase().replace(/\/$/, "");
     if (path === "/custom/edit") {
@@ -143,7 +143,7 @@ class Navigate {
         });
       })
       .catch(() => {
-        // endpoint unavailable — fall back to the full page load
+        // endpoint unavailable вЂ” fall back to the full page load
         window.location.href = address;
       });
 
@@ -156,7 +156,7 @@ class Navigate {
       this.pageTitle.innerText = json.title;
       this.pageFooter.innerHTML = json.footer;
       this.pageTitle2.innerText = "";
-      UpdateLiveButton();
+      UpdateToolbar();
 
       requestAnimationFrame(() => {
         var a = document.createElement("a");
@@ -230,15 +230,15 @@ class Navigate {
 
     if (this.pageContent == null) return true;
 
-    // Hard loads have no active link marked server-side — highlight (and
+    // Hard loads have no active link marked server-side вЂ” highlight (and
     // reveal) the current page's sidebar entry right away.
     this.UpdateSidebar();
 
     var thisHost = window.location.host;
     // Links that must never go through the JSON content loader: anchors,
     // special pages, anything with a query string, and the API. The app
-    // pages — the editor (/custom/edit) and the custom-pages index
-    // (/custom) — are exceptions: ToPage routes them through the
+    // pages вЂ” the editor (/custom/edit) and the custom-pages index
+    // (/custom) вЂ” are exceptions: ToPage routes them through the
     // client-side content swap.
     var skipNav = (val) => {
       var path = val.split(/[?#]/)[0].replace(/\/$/, "");
@@ -703,43 +703,85 @@ window.addEventListener("pagehide", saveSidebarState);
 // Custom pages carry an invisible #custom-page-marker element: on them the
 // header "Live" button (which links to the official wiki) becomes an "Edit"
 // button opening the page in the custom-page editor.
-function UpdateLiveButton() {
+// Rebuilds the toolbar tabs for the current context, matching the official
+// wiki: custom pages (and their editor/history/diff views) get View / Edit /
+// History with the current view highlighted (nothing highlighted on diffs),
+// official pages keep Live + Copy, app pages (/custom, new-page editor) get
+// neither.
+function UpdateToolbar() {
   var liveButton = document.getElementById("live-button");
   if (!liveButton) return;
+  var liveLi = liveButton.parentElement;
+  var copyButton = document.getElementById("copy-button");
+  var copyLi = copyButton ? copyButton.parentElement : null;
 
+  ["view-button-li", "edit-button-li", "history-button-li"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.remove();
+  });
+
+  var path = location.pathname;
   var marker = document.getElementById("custom-page-marker");
+  var address = null;
+  var active = null;
+  var appPage = false;
+  var el;
 
   if (marker) {
-    var markerAddress = marker.getAttribute("data-address") || "";
-    liveButton.innerHTML = '<i class="mdi mdi-pencil"></i>Edit';
-    liveButton.href = "/custom/edit?address=" + encodeURIComponent(markerAddress);
-    liveButton.removeAttribute("target");
+    address = marker.getAttribute("data-address") || "";
+    active = "view";
+  } else if ((el = document.querySelector("#pagecontent [data-history-of]"))) {
+    address = el.getAttribute("data-history-of");
+    active = "history";
+  } else if ((el = document.querySelector("#pagecontent [data-diff-of]"))) {
+    address = el.getAttribute("data-diff-of");
+    active = null; // the official wiki highlights no tab on diff views
+  } else if (/^\/custom\/edit\/?$/i.test(path)) {
+    var addressInput = document.getElementById("page-address");
+    if (addressInput && addressInput.hasAttribute("readonly") && addressInput.value) {
+      address = addressInput.value;
+      active = "edit";
+    } else {
+      appPage = true; // creating a brand-new page
+    }
+  } else if (/^\/custom\/?$/i.test(path)) {
+    appPage = true;
+  }
 
-    // Custom pages also get a History button (opens through the content swap)
-    var historyButton = document.getElementById("history-button");
-    if (!historyButton) {
+  if (address !== null) {
+    liveLi.style.display = "none";
+    if (copyLi) copyLi.style.display = "none";
+
+    var tabs = [
+      { id: "view", icon: "mdi-file", label: "View", href: "/" + address },
+      { id: "edit", icon: "mdi-pencil", label: "Edit", href: "/custom/edit?address=" + encodeURIComponent(address) },
+      { id: "history", icon: "mdi-history", label: "History", href: "/" + address + "~history" },
+    ];
+    var ul = liveLi.parentElement;
+    tabs.forEach(function (tab) {
       var li = document.createElement("li");
-      li.id = "history-button-li";
-      historyButton = document.createElement("a");
-      historyButton.id = "history-button";
-      historyButton.style.cursor = "pointer";
-      historyButton.onclick = function () {
-        Navigate.ToPage(historyButton.getAttribute("href"));
+      li.id = tab.id + "-button-li";
+      var a = document.createElement("a");
+      a.id = tab.id + "-button";
+      a.href = tab.href;
+      if (active === tab.id) a.className = "active";
+      a.innerHTML = '<i class="mdi ' + tab.icon + '"></i>' + tab.label;
+      a.onclick = function () {
+        if (active !== tab.id) Navigate.ToPage(tab.href);
         return false;
       };
-      li.appendChild(historyButton);
-      var liveLi = liveButton.parentElement;
-      liveLi.parentElement.insertBefore(li, liveLi.nextSibling);
-    }
-    historyButton.innerHTML = '<i class="mdi mdi-history"></i>History';
-    historyButton.href = "/" + markerAddress + "~history";
+      li.appendChild(a);
+      ul.insertBefore(li, liveLi); // before the hidden Live entry: View, Edit, History
+    });
+  } else if (appPage) {
+    liveLi.style.display = "none";
+    if (copyLi) copyLi.style.display = "none";
   } else {
+    liveLi.style.display = "";
+    if (copyLi) copyLi.style.display = "";
     liveButton.innerHTML = '<i class="mdi mdi-history"></i>Live';
     liveButton.href = "https://wiki.facepunch.com/gmod" + window.location.pathname;
     liveButton.target = "_blank";
-
-    var historyLi = document.getElementById("history-button-li");
-    if (historyLi) historyLi.remove();
   }
 }
 
@@ -918,7 +960,7 @@ function InitCustomSidebar(replace) {
         // Refresh after a save/delete: snapshot the LIVE sidebar state first,
         // swap the section in place (the sidebar never shrinks, so the scroll
         // position can't clamp), then restore that exact state onto the fresh
-        // nodes — open categories, search, scroll all stay put.
+        // nodes вЂ” open categories, search, scroll all stay put.
         saveSidebarState();
         if (oldHeader) oldHeader.replaceWith(header);
         else contents.insertBefore(header, oldSection);
@@ -930,7 +972,7 @@ function InitCustomSidebar(replace) {
         contents.appendChild(header);
         contents.appendChild(section);
 
-        // The freshly built section starts collapsed — re-apply the saved
+        // The freshly built section starts collapsed вЂ” re-apply the saved
         // sidebar state to it, and highlight the current page if its link
         // lives in this section (a custom page opened via full load builds
         // the sidebar in either order relative to Navigate.Install).
@@ -947,7 +989,7 @@ function InitCustomSidebar(replace) {
     });
 }
 
-// Rebuilds the Custom Wiki sidebar section from the API — called after a page
+// Rebuilds the Custom Wiki sidebar section from the API вЂ” called after a page
 // or category changes, so the sidebar updates without any reload. The section
 // is swapped atomically and the live sidebar state (open categories, search,
 // scroll) is carried over.
@@ -963,7 +1005,7 @@ function InitCustomIndex() {
   if (!form) return;
 
   // Instead of location.reload(): re-render the index in place and refresh
-  // the sidebar section — nothing else on the page moves.
+  // the sidebar section вЂ” nothing else on the page moves.
   var rerender = () => {
     RefreshCustomSidebar();
     Navigate.ToPage("/custom", false);
@@ -1112,8 +1154,8 @@ function InitCustomEditor() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || res.statusText);
       status.textContent = "Saved!";
-      // swap straight to the saved page — no reload, the sidebar keeps its
-      // state — and refresh the Custom Wiki section (page may be new)
+      // swap straight to the saved page вЂ” no reload, the sidebar keeps its
+      // state вЂ” and refresh the Custom Wiki section (page may be new)
       RefreshCustomSidebar();
       Navigate.ToPage("/" + data.page.address);
     } catch (err) {
@@ -1134,8 +1176,8 @@ function InitCustomEditor() {
         );
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || res.statusText);
-        // swap to the custom-pages index — no reload, the sidebar keeps
-        // its state — and drop the deleted page from the sidebar section
+        // swap to the custom-pages index вЂ” no reload, the sidebar keeps
+        // its state вЂ” and drop the deleted page from the sidebar section
         RefreshCustomSidebar();
         Navigate.ToPage("/custom");
       } catch (err) {
@@ -1146,13 +1188,13 @@ function InitCustomEditor() {
 }
 
 // The main init chain runs inside requestAnimationFrame after `load`, which
-// browsers suspend in hidden tabs — build the custom sidebar, the editor and
+// browsers suspend in hidden tabs вЂ” build the custom sidebar, the editor and
 // the Live/Edit button independently so they work as soon as the DOM is ready.
 function InitCustomExtras() {
   InitCustomSidebar();
   InitCustomEditor();
   InitCustomIndex();
-  UpdateLiveButton();
+  UpdateToolbar();
 }
 
 if (document.readyState === "loading") {
@@ -1194,7 +1236,7 @@ function setupLastParsed() {
 window.addEventListener("load", () => {
   requestAnimationFrame(() => {
     applySidebarOpenState();
-    UpdateLiveButton();
+    UpdateToolbar();
 
     requestAnimationFrame(() => {
       InitSearch();
@@ -1216,3 +1258,4 @@ window.addEventListener("load", () => {
     });
   });
 });
+
