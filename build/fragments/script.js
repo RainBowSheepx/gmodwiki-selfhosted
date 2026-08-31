@@ -1134,6 +1134,7 @@ function getTimeSince(utcTimestamp) {
 
 function setupLastParsed() {
   const lastParseElement = document.getElementById("last-parse");
+  if (!lastParseElement) return; // mirror notice hidden via HIDE_MIRROR_NOTICE
 
   fetch("/last_build.txt", { method: "GET" })
     .then((r) => {

@@ -69,6 +69,12 @@ $env:DATABASE_URL = "postgres://gmodwiki:gmodwiki@localhost:5432/gmodwiki"
 node dist\server\entry.mjs
 ```
 
+Опциональные переменные запуска:
+
+| Переменная | Значение |
+|---|---|
+| `HIDE_MIRROR_NOTICE=1` | полностью скрыть плашку «This site is a community mirror…» под страницами (по умолчанию она видна) |
+
 Проверка:
 - http://127.0.0.1:4321 — вики;
 - `/Trolleybus_System` — документация аддона;

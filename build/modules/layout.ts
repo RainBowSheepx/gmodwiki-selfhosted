@@ -21,6 +21,14 @@ ${content}
 export async function setupLayout($: cheerio.CheerioAPI) {
   let layout = $.html();
   layout = layout.replace("<sidebar></sidebar>", "<Sidebar />"); // When we insert our element it automatically gets formatted, so we have to fix it in a second pass
+
+  // The mirror-notice placeholder becomes the disclaimer fragment wrapped in
+  // an Astro conditional — HIDE_MIRROR_NOTICE=1 at launch hides the notice
+  const disclaimer = await fs.readFile("build/fragments/disclaimer.html", "utf-8");
+  layout = layout.replace(
+    "<mirrornotice></mirrornotice>",
+    () => "{showMirrorNotice && (\n" + disclaimer.trim() + "\n)}",
+  );
   layout = layout.replace(/\/gmod\//g, "/"); // We don't use the /gmod prefix
   layout = layout.replace(/"{title}"/g, "{title}"); // When we insert this code from js it wraps our frontmatter variables in quotes so we have to unwrap them again
   layout = layout.replace(/"{description}"/g, "{description}");

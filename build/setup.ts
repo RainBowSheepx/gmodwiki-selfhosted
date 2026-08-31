@@ -103,11 +103,10 @@ function setupScriptTags($: cheerio.CheerioAPI) {
 }
 
 async function setupDisclaimer($: cheerio.CheerioAPI) {
-  let disclaimer = await fs.readFile(
-    "build/fragments/disclaimer.html",
-    "utf-8",
-  );
-  $(disclaimer).insertAfter("div.footer[id='pagefooter']");
+  // A placeholder element: setupLayout swaps it for the disclaimer fragment
+  // wrapped in an Astro conditional, so HIDE_MIRROR_NOTICE=1 at launch can
+  // turn the notice off (cheerio would escape the braces of the expression).
+  $("<mirrornotice></mirrornotice>").insertAfter("div.footer[id='pagefooter']");
 }
 
 async function setupFeatures($: cheerio.CheerioAPI) {
