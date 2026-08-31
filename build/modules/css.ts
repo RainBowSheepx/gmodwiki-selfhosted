@@ -205,6 +205,11 @@ export async function processCss(contentHandler: StaticContentHandler) {
   // Remove the weird dot matrix thing that breaks Darkreader
   newContent = `${newContent} .body > .content, #pagelinks a.active { background-image: none !important; }\n`;
 
+  // That also removed the active toolbar-tab highlight (it shared the texture
+  // with the content) — restore it as a flat color matching the content
+  // background; darkmode.js overrides it for the dark theme
+  newContent = `${newContent} #pagelinks a.active { background-color: #fff; }\n`;
+
   // Add padding to the feature buttons
   newContent = `${newContent} ul#pagelinks > li { padding-right: 1rem; }\n`;
 

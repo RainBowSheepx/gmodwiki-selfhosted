@@ -30,6 +30,12 @@ const style = `
       background-color: #333;
       color: #fff;
     }
+    #pagelinks a.active {
+      background-color: #333 !important;
+    }
+    #pagecontent .page.diff h1 {
+      color: #eee !important;
+    }
     .markdown {
       color: #999;
     }

@@ -147,25 +147,34 @@ ${rows}
 // official DOM; the swap target here is #pagecontent, so the same rules are
 // re-scoped inline.
 const DIFF_STYLES = `<style>
-/* #pagecontent carries .markdown, whose h1/h2 styles (80px top margin,
-   underline, negative-offset colored h2 colliding with it) mangle the diff
-   header — restore the official ".page h1/h2" look */
+/* The official diff view has no page title of its own — the content starts
+   with the "Revision Difference" heading */
+#pagetitle {
+    display: none;
+}
 #pagecontent .page.diff {
     padding: 16px 0;
 }
+/* #pagecontent carries .markdown, whose h1/h2 styles (80px top margin,
+   underline, gray color) mangle the diff header — values below are the
+   computed styles from wiki.facepunch.com's diff page */
 #pagecontent .page.diff h1 {
     font-size: 30px;
+    font-weight: 700;
     text-transform: uppercase;
-    margin: 0;
+    color: #000;
+    margin: 20px 0;
     padding: 0;
     border-bottom: none;
-    line-height: 1.3;
+    line-height: normal;
 }
 #pagecontent .page.diff h2 {
-    position: static;
-    margin: 0 0 8px;
+    position: relative;
+    top: -32px;
+    margin: 0;
     color: #0082ff;
-    font-size: 18px;
+    font-size: 19.5px;
+    font-weight: 700;
 }
 #pagecontent .page.diff .textdiff {
     color: #777;
@@ -322,5 +331,6 @@ export async function buildDiffPage(
 
 </div>`;
 
-  return { html, title: `${rev.address} Diff` };
+  // matches the official diff page's document title and breadcrumb
+  return { html, title: `History for ${rev.address}` };
 }

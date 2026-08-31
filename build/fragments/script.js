@@ -271,8 +271,14 @@ class Navigate {
       });
     }
 
+    // clicks often land on elements INSIDE the link (icons, <strong>, the
+    // realm dot) — climb to the anchor itself before deciding anything
+    var linkOf = (e) =>
+      e.target && e.target.closest ? e.target.closest("a") : e.target;
+
     this.sideBar.addEventListener("click", (e) => {
-      var a = e.target;
+      var a = linkOf(e);
+      if (!a) return;
 
       if (a.host != thisHost) return;
 
@@ -288,7 +294,8 @@ class Navigate {
     });
 
     this.pageContent.addEventListener("click", (e) => {
-      var a = e.target;
+      var a = linkOf(e);
+      if (!a) return;
 
       if (a.host != thisHost) return;
 
