@@ -31,7 +31,9 @@ const style = `
       color: #fff;
     }
     #pagelinks a.active {
-      background-color: #333 !important;
+      /* same translucent layer div.content gets above: the active tab
+         composites to exactly the page background and merges with it */
+      background-color: rgba(0, 0, 0, 0.2) !important;
     }
     #pagecontent .page.diff h1 {
       color: #eee !important;
