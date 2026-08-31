@@ -79,7 +79,9 @@ const ogImageUrl = `${Astro.url.protocol}//${Astro.url.host}${ogImage}`
 
 const footer = json.footer
 const footerInfo = footer.split("<br>")
-const views = footerInfo[0] || "0 views"
+// history/diff views have no view counter — don't fall back to "0 views"
+const isHistoryView = /~(history|diff:\d+)$/i.test(slug)
+const views = isHistoryView ? "" : (footerInfo[0] || "0 views")
 const updated = footerInfo[1] || ""
 ---
 
