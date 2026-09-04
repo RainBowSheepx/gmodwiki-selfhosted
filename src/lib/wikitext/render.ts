@@ -541,10 +541,17 @@ function renderArgDesc(ctx: RenderContext, desc: string, callbacks: string[]): s
   return out;
 }
 
-function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner: string): { html: string; classes: string[] } {
+function renderFunction(
+  ctx: RenderContext,
+  attrs: Record<string, string>,
+  inner: string,
+): { html: string; classes: string[]; tags: string[] } {
   const name = attrs.name ?? "";
   const parent = attrs.parent ?? "";
   const type = (attrs.type ?? "libraryfunc").toLowerCase();
+  // `libraryfield` (e.g. Global.BRANCH, math.pi): a value, not a call — the
+  // signature line has no parentheses and the page is tagged "field"
+  const isField = type.endsWith("field");
 
   const description = firstTag(inner, "description")?.inner ?? "";
   const realmText = firstTag(inner, "realm")?.inner ?? "Shared";
@@ -577,7 +584,9 @@ function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner
     line += escapeHtml(name);
   }
 
-  if (args.length > 0) {
+  if (isField) {
+    // no call syntax for fields
+  } else if (args.length > 0) {
     const argParts = args.map((a) => {
       if (a.type === "vararg") return "...";
       let part = `${typeLink(ctx, a.type)} ${escapeHtml(a.name)}`;
@@ -637,7 +646,9 @@ function renderFunction(ctx: RenderContext, attrs: Record<string, string>, inner
   }
 
   html += `</div>`;
-  return { html, classes };
+  // page tags follow the official wiki: fields are "field", not "function"
+  const tags = isField ? ["field", ...realms.map((r) => `realm-${r}`)] : classes;
+  return { html, classes, tags };
 }
 
 /* ------------------------------------------------------------------ */
@@ -797,7 +808,7 @@ export function renderWikitext(markup: string, ctx: RenderContext): RenderedPage
     if (tag === "function") {
       const fn = renderFunction(ctx, attrs, inner);
       html += fn.html;
-      fn.classes.forEach((c) => tagSet.add(c));
+      fn.tags.forEach((c) => tagSet.add(c));
     } else if (tag === "example") {
       html += renderExample(ctx, inner, exampleIndex);
       exampleIndex++;

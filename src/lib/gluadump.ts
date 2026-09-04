@@ -188,8 +188,11 @@ function buildEntry(
     LINK: `${origin}/${page.address}`,
     ...realms,
   };
+  // Fields (libraryfield, e.g. Global.BRANCH) carry neither flag — exactly
+  // like the official wiki data, which makes the editor plugin complete
+  // them as constants without call parentheses or signature help.
   if (type === "hook") entry.EVENT = true;
-  else entry.FUNCTION = true;
+  else if (!type.endsWith("field")) entry.FUNCTION = true;
 
   if (parsed.description) entry.DESCRIPTION = parsed.description;
   if (parsed.notes.length) entry.NOTES = parsed.notes;

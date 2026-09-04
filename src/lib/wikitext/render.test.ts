@@ -123,6 +123,22 @@ describe("renderWikitext", () => {
     expect(html).not.toContain("garrysmod/lua/deck");
   });
 
+  it("renders libraryfield values without call syntax and tags them as fields", () => {
+    const markup = `<function name="BRANCH" parent="Global" type="libraryfield">
+	<description>A variable containing the branch name.</description>
+	<realm>Shared and Menu</realm>
+	<rets>
+		<ret name="" type="string">The current branch.</ret>
+	</rets>
+</function>`;
+    const { html, tags } = renderWikitext(markup, ctx);
+    expect(html).toContain(`<div class="function libraryfield realm-client realm-server realm-menu">`);
+    expect(html).toContain(`<a class="link-page exists" href="/string">string</a> BRANCH</div>`);
+    expect(html).not.toContain("BRANCH()");
+    expect(tags.split(" ")).toContain("field");
+    expect(tags.split(" ")).not.toContain("function");
+  });
+
   it("supports parentlink for subjects living at a different address", () => {
     const markup = `<function name="ControlPedals" parent="TISU" parentlink="Systems/TISU" type="classfunc">
 	<description>Test.</description>

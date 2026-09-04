@@ -864,10 +864,11 @@ function InitCustomSidebar(replace) {
       // declares a <realm> gets the colored dot, not only functions.
       function leafClasses(p) {
         var hasRealm = hasTag(p, "realm-client") || hasTag(p, "realm-server") || hasTag(p, "realm-menu");
-        var isMember = hasTag(p, "function") || hasTag(p, "enum") || hasTag(p, "struct") || hasTag(p, "panel");
+        var isMember = hasTag(p, "function") || hasTag(p, "field") || hasTag(p, "enum") || hasTag(p, "struct") || hasTag(p, "panel");
         if (!isMember && !hasRealm) return "";
         var cls = ["cm"];
         if (hasTag(p, "function")) cls.push("f");
+        if (hasTag(p, "field")) cls.push("field"); // round dot, like the official sidebar
         if (hasTag(p, "realm-client")) cls.push("rc");
         if (hasTag(p, "realm-server")) cls.push("rs");
         if (hasTag(p, "realm-menu")) cls.push("rm");

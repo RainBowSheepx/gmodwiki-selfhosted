@@ -146,7 +146,9 @@ function memberLine(
       syntax += escapeText(parent) + separator;
     }
     syntax += `<a class="subject" href="/${member.address}">${escapeText(name)}</a>`;
-    if (args.length) {
+    if (type.endsWith("field")) {
+      // fields (libraryfield) have no call syntax
+    } else if (args.length) {
       const argParts = args.map((a) => {
         if (a.type === "vararg") return "...";
         let part = `<a class="link-page exists" href="/${escapeText(a.type)}">${escapeText(a.type)}</a> ${escapeText(a.name)}`;
