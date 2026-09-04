@@ -18,6 +18,10 @@ import {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+// Commit messages carry "**text**" bold markers (e.g. the auto-appended
+// "(**old category** -> **new category**)" on category/title changes)
+const commitHtml = (s: string) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
 /* ---------------- emoji avatars ---------------- */
 
 // The official wiki shows user avatars; we have no accounts, so each author
@@ -109,7 +113,7 @@ export async function buildHistoryPage(address: string): Promise<{ html: string;
                         <div class="address">
                             <a title="${timestampTitle(rev.created_at)}" href="/${esc(displayAddress)}">${esc(displayAddress)}</a> -
 
-                            ${esc(rev.commit_message)}
+                            ${commitHtml(rev.commit_message)}
 
                         </div>
 

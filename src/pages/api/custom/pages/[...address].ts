@@ -60,6 +60,12 @@ export const PUT: APIRoute = async ({ params, request, url }) =>
     const contentChanged =
       existing.markup !== markup || existing.title !== title || existing.category !== category;
 
+    // Category/title changes are appended to the history message as
+    // " (**old** -> **new**)" — the history page renders the bold markers
+    let historyMessage = commitMessage;
+    if (existing.category !== category) historyMessage += ` (**${existing.category}** -> **${category}**)`;
+    if (existing.title !== title) historyMessage += ` (**${existing.title}** -> **${title}**)`;
+
     // Nothing changed at all (same markup AND same rendered html): skip the
     // write entirely, so idempotent republishes (docs_generator) neither bump
     // updated_at nor spam the history.
@@ -91,7 +97,7 @@ export const PUT: APIRoute = async ({ params, request, url }) =>
           createdAt: existing.updated_at,
         });
       }
-      await addPageRevision({ address: existing.address, title, category, markup, commitMessage, author });
+      await addPageRevision({ address: existing.address, title, category, markup, commitMessage: historyMessage, author });
     }
 
     return jsonResponse({ page });

@@ -213,10 +213,10 @@ export async function processCss(contentHandler: StaticContentHandler) {
   // Add padding to the feature buttons
   newContent = `${newContent} ul#pagelinks > li { padding-right: 1rem; }\n`;
 
-  // Custom-wiki categories list their pages directly under a level1 details,
-  // where the official square-dot rule outranks the round field-dot rule
-  // (which only expects fields under level2) — restore the round dot there
-  newContent = `${newContent} #sidebar details.level1 > ul > li > a.field:before { border-radius: 999px; }\n`;
+  // Custom-wiki categories nest pages at any depth, and every level's
+  // square-dot rule outranks the official round field-dot rule (which only
+  // expects fields under level2) — fields get the round dot everywhere
+  newContent = `${newContent} #sidebar a.field:before { border-radius: 999px !important; }\n`;
 
   // Add the "Mirror" tag/label to the icon
   newContent = `${newContent} #ident > h1 > a:after { content: "Mirror"; color: #F6FAFE; background-color: #0183FF; font-size: 10px; text-transform: uppercase; padding: 1px 4px; margin-left: 8px; display: inline-block; position: relative; top: -4px; }\n`;
